@@ -1,0 +1,23 @@
+{
+  "name": "d3-timeline",
+  "version": "1.0.0",
+  "description": "d3-timeline",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ethoinformatics/d3-timeline.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ethoinformatics/d3-timeline/issues"
+  },
+  "homepage": "https://github.com/ethoinformatics/d3-timeline",
+  "dependencies": {
+    "d3": "^3.4.13",
+    "lodash": "^2.4.1"
+  }
+}
