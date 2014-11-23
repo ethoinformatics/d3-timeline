@@ -17023,7 +17023,6 @@ var d3 = require('d3'),
 	util = require('util'),
 	EventEmitter = require('events').EventEmitter;
 
-
 var DEFAULTS = {
 	getEventTimestamp: function(d){ return d.timestamp; },
 	getActivityBegin: function(d){ return d.beginTime; },
@@ -17031,7 +17030,6 @@ var DEFAULTS = {
 	getLabel: function(d){ return d.desc; },
 	getColor: function(d, i){ return d.color || color(i); },
 };
-
 
 function Manager(list){
 	var self = this;
@@ -17068,6 +17066,15 @@ function Timeline(opts){
 		background,
 		leftArrow,
 		rightArrow,
+		HEADER_HEIGHT = 44*2,
+		h = opts.height || window.innerHeight - HEADER_HEIGHT,
+		w = opts.width || window.innerWidth,
+		svg,
+		timeAxis,
+		timeScale,
+		verticalScale,
+		AXIS_HEIGHT = 35,
+		zoom,
 		text;
 
 	EventEmitter.call(self);
@@ -17077,20 +17084,21 @@ function Timeline(opts){
 	self.events = new Manager(events);
 	self.activities = new Manager(activities);
 
-	self.events.on('change', doRender);
-	self.activities.on('change', doRender);
+	self.events.on('change', render);
+	self.activities.on('change', render);
 
 	function getBeginDateTime(item){
 		var val = opts.getActivityBegin(item);
-		return new Date(val);
+		return  val instanceof Date ? val :new Date(val);
 	}
 
 	function getEndDateTime(item){
 		var val = opts.getActivityEnd(item);
-		return new Date(val);
+		return  val instanceof Date ? val :new Date(val);
 	}
 
-	function doRender(){
+	function render(){
+		console.log('0');
 		h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
 
@@ -17124,13 +17132,13 @@ function Timeline(opts){
 				.attr('height', h);
 		}
 
+		console.log('1');
 		verticalScale = d3.scale.ordinal()
 			.domain(d3.range(activities.length))
 			.rangeRoundBands([0,(h-AXIS_HEIGHT)], 0.05);
 
 		var groups = svg.selectAll('g.activity')
 			.data(activities);
-			//.data(activities, function(d){ return d._id; });
 
 		groups.select('rect.background')
 			.call(setVerticalPosition);
@@ -17144,7 +17152,7 @@ function Timeline(opts){
 			.classed('activity', true)
 			.attr('data-id', function(d){ return d._id; });
 
-		
+		console.log('2');
 		// background bar
 		newGroups
 			.append('rect')
@@ -17168,6 +17176,7 @@ function Timeline(opts){
 			.attr('fill', opts.getColor)
 			.call(setHorizontalPosition);
 
+		console.log('3');
 		var barHeight = verticalScale.rangeBand();
 		var triangleSize = (barHeight*barHeight)/4;
 
@@ -17185,6 +17194,7 @@ function Timeline(opts){
 			})
 			.attr('fill', opts.getColor);
 
+		console.log('4');
 		newGroups
 			.append('path')
 			.classed('right-arrow', true)
@@ -17250,25 +17260,25 @@ function Timeline(opts){
 		setArrowVisibility();
 	}
 
-	var HEADER_HEIGHT = 44*2,
-		h = window.innerHeight - HEADER_HEIGHT,
-		w = +window.innerWidth,
-		svg,
-		timeAxis,
-		timeScale,
-		verticalScale,
-		AXIS_HEIGHT = 35,
-		zoom,
-		lastActivities = [];
-
 	function ensureTimeScale(activities){
-		var minTime = d3.min(activities, function(d){ return d.beginTime; }),
-			maxTime = d3.max(activities, function(d){ return d.endTime || Date.now(); });
+		var minTime = d3.min(activities, getBeginDateTime),
+			maxTime = d3.max(activities, getEndDateTime);
+
+		maxTime = maxTime || new Date();
+		minTime = minTime || (function(){ 
+				var a = new Date(maxTime);
+				a.setHours(a.getHours()-24);
+				return a;
+			})();
+
+		console.log('min: ' + minTime);
+		console.log('max: ' + maxTime);
+		debugger
 
 		if (!timeScale) timeScale = d3.time.scale();
 
 		timeScale = timeScale
-			.domain([new Date(minTime), new Date(maxTime)])
+			.domain([minTime, maxTime])
 			.range([10, w-10]);
 
 		return timeScale;
@@ -17277,7 +17287,8 @@ function Timeline(opts){
 	function setHorizontalPosition(selection){
 		selection
 			.attr('x', function(d){
-				var x = timeScale(new Date(d.beginTime));
+				var x = timeScale(getBeginDateTime(d));
+				console.dir(x);
 				return x;
 			})
 			.attr('width', function(d){ 
@@ -17325,6 +17336,7 @@ function Timeline(opts){
 	}
 
 	function onZoom(){
+		console.log('i am zooming');
 		svg.selectAll('.time-axis')
 			//.transition()
 			.call(timeAxis);
@@ -17338,10 +17350,10 @@ function Timeline(opts){
 	function setArrowVisibility(){
 		leftArrow
 			.attr('visibility', function(d){
-				var begin = timeScale(new Date(d.beginTime)), v;
+				var begin = timeScale(getBeginDateTime(d)), v;
 
 				if (d.endTime) {
-					v = timeScale(new Date(d.endTime)) - begin;
+					v = timeScale(getEndDateTime(d)) - begin;
 				} else {
 					v = timeScale(new Date()) - begin;
 				}
@@ -17356,7 +17368,7 @@ function Timeline(opts){
 			});
 	}
 
-	doRender(activities);
+	//render();
 }
 
 
