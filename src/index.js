@@ -79,7 +79,7 @@ function Timeline(opts){
 	}
 
 	function render(){
-		console.log('0');
+		//console.log('0');
 		h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
 
@@ -113,7 +113,7 @@ function Timeline(opts){
 				.attr('height', h);
 		}
 
-		console.log('1');
+		//console.log('1');
 		verticalScale = d3.scale.ordinal()
 			.domain(d3.range(activities.length))
 			.rangeRoundBands([0,(h-AXIS_HEIGHT)], 0.05);
@@ -133,7 +133,7 @@ function Timeline(opts){
 			.classed('activity', true)
 			.attr('data-id', function(d){ return d._id; });
 
-		console.log('2');
+		//console.log('2');
 		// background bar
 		newGroups
 			.append('rect')
@@ -149,7 +149,7 @@ function Timeline(opts){
 			.classed('foreground', true)
 			.on('click', function(d){
 				d3.event.stopPropagation();
-				self.emit('click', d);
+				self.emit('activity-click', d);
 			})
 			.attr('width', 0)
 			.call(setVerticalPosition)
@@ -157,7 +157,7 @@ function Timeline(opts){
 			.attr('fill', opts.getColor)
 			.call(setHorizontalPosition);
 
-		console.log('3');
+		//console.log('3');
 		var barHeight = verticalScale.rangeBand();
 		var triangleSize = (barHeight*barHeight)/4;
 
@@ -171,18 +171,19 @@ function Timeline(opts){
 			.attr('d', arc)
 			.attr('transform', function(d, i){ 
 				var h = verticalScale(i) + (barHeight/2);
-				return 'translate(20,' + h +') rotate(-90)';
+				var x = (barHeight/3) +4;
+				return 'translate('+x+',' + h +') rotate(-90)';
 			})
 			.attr('fill', opts.getColor);
 
-		console.log('4');
+		//console.log('4');
 		newGroups
 			.append('path')
 			.classed('right-arrow', true)
 			.attr('d', arc)
 			.attr('transform', function(d, i){ 
 				var h = verticalScale(i) + (barHeight/2);
-				var x = w - 20;
+				var x = w - ((barHeight/3) +4);
 				return 'translate('+x+','+  h +') rotate(90)';
 			})
 			.attr('fill', opts.getColor);
@@ -252,9 +253,8 @@ function Timeline(opts){
 				return a;
 			})();
 
-		console.log('min: ' + minTime);
-		console.log('max: ' + maxTime);
-		debugger
+		// console.log('min: ' + minTime);
+		// console.log('max: ' + maxTime);
 
 		if (!timeScale) timeScale = d3.time.scale();
 
@@ -269,7 +269,7 @@ function Timeline(opts){
 		selection
 			.attr('x', function(d){
 				var x = timeScale(getBeginDateTime(d));
-				console.dir(x);
+				//console.dir(x);
 				return x;
 			})
 			.attr('width', function(d){ 
@@ -317,7 +317,7 @@ function Timeline(opts){
 	}
 
 	function onZoom(){
-		console.log('i am zooming');
+		//console.log('i am zooming');
 		svg.selectAll('.time-axis')
 			//.transition()
 			.call(timeAxis);
