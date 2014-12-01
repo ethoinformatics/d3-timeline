@@ -17024,44 +17024,22 @@ var d3 = require('d3'),
 	EventEmitter = require('events').EventEmitter;
 
 var DEFAULTS = {
-	getEventTimestamp: function(d){ return d.timestamp; },
-	getActivityBegin: function(d){ return d.beginTime; },
-	getActivityEnd: function(d){ return d.endTime; },
+	getBegin: function(d){ return d.beginTime; },
+	getEnd: function(d){ return d.endTime; },
 	getLabel: function(d){ return d.desc; },
 	getColor: function(d, i){ return d.color || color(i); },
 };
 
-function Manager(list){
-	var self = this;
-	EventEmitter.call(self);
-
-	self.add = function(items){
-		_.flatten([items])
-			.forEach(function(item){
-				list.push(item);
-			});
-
-		self.emit('change');
-	};
-	self.remove = function(toRemove){
-		self.emit('change');
-	};
-	self.update = function(item){
-
-		self.emit('change');
-	};
-}
-
 util.inherits(Timeline, EventEmitter);
-util.inherits(Manager, EventEmitter);
 
 function Timeline(opts){
 	if (!(this instanceof Timeline)) return new Timeline(opts);
 	opts = _.extend({}, DEFAULTS, opts);
 
+	EventEmitter.call(this);
+
 	var self = this,
-		activities = [],
-		events = [],
+		items = [],
 		foreground,
 		background,
 		leftArrow,
@@ -17081,29 +17059,40 @@ function Timeline(opts){
 
 	self.element = window.document.createElement('div');
 
-	self.events = new Manager(events);
-	self.activities = new Manager(activities);
+	self.add = function(itemsToAdd){
+		_.flatten([itemsToAdd])
+			.forEach(function(item){
+				items.push(item);
+			});
 
-	self.events.on('change', render);
-	self.activities.on('change', render);
+		debugger
+		render();
+	};
+
+	self.remove = function(toRemove){
+		_.remove(items, toRemove);
+		render();
+	};
+
+	self.update = render;
 
 	function getBeginDateTime(item){
-		var val = opts.getActivityBegin(item);
+		var val = opts.getBegin(item);
 		return  val instanceof Date ? val :new Date(val);
 	}
 
 	function getEndDateTime(item){
-		var val = opts.getActivityEnd(item);
+		var val = opts.getEnd(item);
 		return  val instanceof Date ? val :new Date(val);
 	}
 
 	function render(){
-		console.log('0');
+		//console.log('0');
 		h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
 
-		_.sortBy(activities, getBeginDateTime);
-		timeScale = ensureTimeScale(activities);
+		_.sortBy(items, getBeginDateTime);
+		timeScale = ensureTimeScale(items);
 
 		if (svg){
 			svg.attr('width', w)
@@ -17132,13 +17121,13 @@ function Timeline(opts){
 				.attr('height', h);
 		}
 
-		console.log('1');
+		//console.log('1');
 		verticalScale = d3.scale.ordinal()
-			.domain(d3.range(activities.length))
+			.domain(d3.range(items.length))
 			.rangeRoundBands([0,(h-AXIS_HEIGHT)], 0.05);
 
 		var groups = svg.selectAll('g.activity')
-			.data(activities);
+			.data(items);
 
 		groups.select('rect.background')
 			.call(setVerticalPosition);
@@ -17152,7 +17141,7 @@ function Timeline(opts){
 			.classed('activity', true)
 			.attr('data-id', function(d){ return d._id; });
 
-		console.log('2');
+		//console.log('2');
 		// background bar
 		newGroups
 			.append('rect')
@@ -17168,7 +17157,7 @@ function Timeline(opts){
 			.classed('foreground', true)
 			.on('click', function(d){
 				d3.event.stopPropagation();
-				self.emit('click', d);
+				self.emit('activity-click', d);
 			})
 			.attr('width', 0)
 			.call(setVerticalPosition)
@@ -17176,7 +17165,7 @@ function Timeline(opts){
 			.attr('fill', opts.getColor)
 			.call(setHorizontalPosition);
 
-		console.log('3');
+		//console.log('3');
 		var barHeight = verticalScale.rangeBand();
 		var triangleSize = (barHeight*barHeight)/4;
 
@@ -17190,18 +17179,19 @@ function Timeline(opts){
 			.attr('d', arc)
 			.attr('transform', function(d, i){ 
 				var h = verticalScale(i) + (barHeight/2);
-				return 'translate(20,' + h +') rotate(-90)';
+				var x = (barHeight/3) +4;
+				return 'translate('+x+',' + h +') rotate(-90)';
 			})
 			.attr('fill', opts.getColor);
 
-		console.log('4');
+		//console.log('4');
 		newGroups
 			.append('path')
 			.classed('right-arrow', true)
 			.attr('d', arc)
 			.attr('transform', function(d, i){ 
 				var h = verticalScale(i) + (barHeight/2);
-				var x = w - 20;
+				var x = w - ((barHeight/3) +4);
 				return 'translate('+x+','+  h +') rotate(90)';
 			})
 			.attr('fill', opts.getColor);
@@ -17215,8 +17205,10 @@ function Timeline(opts){
 				var h = barHeight * 3/4;
 				return verticalScale(i) +h ;
 			})
-			.text(opts.getLabel)
 			.call(setTextPosition);
+
+		groups.selectAll('text')
+			.text(opts.getLabel);
 		
 		// activityGroups
 		// 	.append('text')
@@ -17271,9 +17263,8 @@ function Timeline(opts){
 				return a;
 			})();
 
-		console.log('min: ' + minTime);
-		console.log('max: ' + maxTime);
-		debugger
+		// console.log('min: ' + minTime);
+		// console.log('max: ' + maxTime);
 
 		if (!timeScale) timeScale = d3.time.scale();
 
@@ -17288,7 +17279,7 @@ function Timeline(opts){
 		selection
 			.attr('x', function(d){
 				var x = timeScale(getBeginDateTime(d));
-				console.dir(x);
+				//console.dir(x);
 				return x;
 			})
 			.attr('width', function(d){ 
@@ -17336,7 +17327,7 @@ function Timeline(opts){
 	}
 
 	function onZoom(){
-		console.log('i am zooming');
+		//console.log('i am zooming');
 		svg.selectAll('.time-axis')
 			//.transition()
 			.call(timeAxis);
@@ -17368,7 +17359,6 @@ function Timeline(opts){
 			});
 	}
 
-	//render();
 }
 
 

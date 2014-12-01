@@ -5,44 +5,22 @@ var d3 = require('d3'),
 	EventEmitter = require('events').EventEmitter;
 
 var DEFAULTS = {
-	getEventTimestamp: function(d){ return d.timestamp; },
-	getActivityBegin: function(d){ return d.beginTime; },
-	getActivityEnd: function(d){ return d.endTime; },
+	getBegin: function(d){ return d.beginTime; },
+	getEnd: function(d){ return d.endTime; },
 	getLabel: function(d){ return d.desc; },
 	getColor: function(d, i){ return d.color || color(i); },
 };
 
-function Manager(list){
-	var self = this;
-	EventEmitter.call(self);
-
-	self.add = function(items){
-		_.flatten([items])
-			.forEach(function(item){
-				list.push(item);
-			});
-
-		self.emit('change');
-	};
-	self.remove = function(toRemove){
-		self.emit('change');
-	};
-	self.update = function(item){
-
-		self.emit('change');
-	};
-}
-
 util.inherits(Timeline, EventEmitter);
-util.inherits(Manager, EventEmitter);
 
 function Timeline(opts){
 	if (!(this instanceof Timeline)) return new Timeline(opts);
 	opts = _.extend({}, DEFAULTS, opts);
 
+	EventEmitter.call(this);
+
 	var self = this,
-		activities = [],
-		events = [],
+		items = [],
 		foreground,
 		background,
 		leftArrow,
@@ -62,19 +40,30 @@ function Timeline(opts){
 
 	self.element = window.document.createElement('div');
 
-	self.events = new Manager(events);
-	self.activities = new Manager(activities);
+	self.add = function(itemsToAdd){
+		_.flatten([itemsToAdd])
+			.forEach(function(item){
+				items.push(item);
+			});
 
-	self.events.on('change', render);
-	self.activities.on('change', render);
+		debugger
+		render();
+	};
+
+	self.remove = function(toRemove){
+		_.remove(items, toRemove);
+		render();
+	};
+
+	self.update = render;
 
 	function getBeginDateTime(item){
-		var val = opts.getActivityBegin(item);
+		var val = opts.getBegin(item);
 		return  val instanceof Date ? val :new Date(val);
 	}
 
 	function getEndDateTime(item){
-		var val = opts.getActivityEnd(item);
+		var val = opts.getEnd(item);
 		return  val instanceof Date ? val :new Date(val);
 	}
 
@@ -83,8 +72,8 @@ function Timeline(opts){
 		h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
 
-		_.sortBy(activities, getBeginDateTime);
-		timeScale = ensureTimeScale(activities);
+		_.sortBy(items, getBeginDateTime);
+		timeScale = ensureTimeScale(items);
 
 		if (svg){
 			svg.attr('width', w)
@@ -115,11 +104,11 @@ function Timeline(opts){
 
 		//console.log('1');
 		verticalScale = d3.scale.ordinal()
-			.domain(d3.range(activities.length))
+			.domain(d3.range(items.length))
 			.rangeRoundBands([0,(h-AXIS_HEIGHT)], 0.05);
 
 		var groups = svg.selectAll('g.activity')
-			.data(activities);
+			.data(items);
 
 		groups.select('rect.background')
 			.call(setVerticalPosition);
@@ -197,8 +186,10 @@ function Timeline(opts){
 				var h = barHeight * 3/4;
 				return verticalScale(i) +h ;
 			})
-			.text(opts.getLabel)
 			.call(setTextPosition);
+
+		groups.selectAll('text')
+			.text(opts.getLabel);
 		
 		// activityGroups
 		// 	.append('text')
@@ -349,7 +340,6 @@ function Timeline(opts){
 			});
 	}
 
-	//render();
 }
 
 

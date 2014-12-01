@@ -3,13 +3,12 @@ d3-timeline
 
 ```js
 	var myTimeline = timeline({
-			getEventTimestamp: function(d){ return d.time; },
-			getActivityBegin: function(d){ return d.beginTime; },
-			getActivityEnd: function(d){ return d.endTime; },
+			getBegin: function(d){ return d.beginTime; },
+			getEnd: function(d){ return d.endTime; },
 			getLabel: function(d){ return d.desc; },
 		});
 
-	myTimeline.activities.add([{
+	myTimeline.add([{
 			beginTime: new Date(2014, 7, 30),
 			endTime: new Date(2014, 8, 1),
 			desc: 'pizza',
@@ -29,5 +28,6 @@ d3-timeline
 			endTime: new Date(2014, 8, 6),
 			desc: 'broccoli',
 		}]);
+
 	window.document.body.appendChild(myTimeline.element);
 ```
