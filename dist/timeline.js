@@ -17065,7 +17065,6 @@ function Timeline(opts){
 				items.push(item);
 			});
 
-		debugger
 		render();
 	};
 

@@ -31,7 +31,12 @@
 					beginTime: new Date(2014, 8, 2),
 					endTime: new Date(2014, 8, 6),
 					desc: 'broccoli',
-				}]);
+				}]
+			);
+
+			myTimeline.on('activity-click', function(item){
+					myTimeline.remove(item);
+				});
 			window.document.body.appendChild(myTimeline.element);
 		</script>
 	</body>
