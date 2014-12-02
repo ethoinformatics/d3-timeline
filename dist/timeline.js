@@ -17164,36 +17164,8 @@ function Timeline(opts){
 			.attr('fill', opts.getColor)
 			.call(setHorizontalPosition);
 
-		//console.log('3');
 		var barHeight = verticalScale.rangeBand();
 		var triangleSize = (barHeight*barHeight)/4;
-
-		var arc = d3.svg.symbol()
-			.type('triangle-up')
-			.size(triangleSize);
-
-		newGroups
-			.append('path')
-			.classed('left-arrow', true)
-			.attr('d', arc)
-			.attr('transform', function(d, i){ 
-				var h = verticalScale(i) + (barHeight/2);
-				var x = (barHeight/3) +4;
-				return 'translate('+x+',' + h +') rotate(-90)';
-			})
-			.attr('fill', opts.getColor);
-
-		//console.log('4');
-		newGroups
-			.append('path')
-			.classed('right-arrow', true)
-			.attr('d', arc)
-			.attr('transform', function(d, i){ 
-				var h = verticalScale(i) + (barHeight/2);
-				var x = w - ((barHeight/3) +4);
-				return 'translate('+x+','+  h +') rotate(90)';
-			})
-			.attr('fill', opts.getColor);
 
 		newGroups
 			.append('text')
@@ -17208,6 +17180,41 @@ function Timeline(opts){
 
 		groups.selectAll('text')
 			.text(opts.getLabel);
+		//console.log('3');
+
+		var arc = d3.svg.symbol()
+			.type('triangle-up')
+			.size(triangleSize);
+
+		newGroups
+			.append('path')
+			.classed('left-arrow', true)
+			.attr('d', arc)
+			.attr('transform', function(d, i){ 
+				var h = verticalScale(i) + (barHeight/2);
+				var x = (barHeight/3) +4;
+				return 'translate('+x+',' + h +') rotate(-90)';
+			})
+			.attr('fill', opts.getColor)
+			.on('click', function(d){
+				self.emit('left-click', d);
+			});
+
+		//console.log('4');
+		newGroups
+			.append('path')
+			.classed('right-arrow', true)
+			.attr('d', arc)
+			.attr('transform', function(d, i){ 
+				var h = verticalScale(i) + (barHeight/2);
+				var x = w - ((barHeight/3) +4);
+				return 'translate('+x+','+  h +') rotate(90)';
+			})
+			.attr('fill', opts.getColor)
+			.on('click', function(d){
+				self.emit('right-click', d);
+			});
+
 		
 		// activityGroups
 		// 	.append('text')

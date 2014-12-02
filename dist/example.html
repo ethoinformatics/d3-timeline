@@ -37,6 +37,14 @@
 			myTimeline.on('activity-click', function(item){
 					myTimeline.remove(item);
 				});
+			myTimeline.on('left-click', function(item){
+					window.alert('got a left arrow click');
+					console.dir(item);
+				});
+			myTimeline.on('right-click', function(item){
+					window.alert('got a right arrow click');
+					console.dir(item);
+				});
 			window.document.body.appendChild(myTimeline.element);
 		</script>
 	</body>
