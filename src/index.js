@@ -36,6 +36,7 @@ function Timeline(opts){
 		zoom,
 		text;
 
+	console.dir(h);
 	EventEmitter.call(self);
 
 	self.element = window.document.createElement('div');
@@ -68,7 +69,7 @@ function Timeline(opts){
 
 	function render(){
 		//console.log('0');
-		h = window.innerHeight - HEADER_HEIGHT,
+		//h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
 
 		_.sortBy(items, getBeginDateTime);
@@ -188,7 +189,7 @@ function Timeline(opts){
 				var barStart = computeBarStart(d);
 				var barWidth = computeBarWidth(d);
 
-				console.log('barWidth vs width: ' + barWidth + '  ' + w);
+				console.log('2barWidth vs width: ' + barWidth + '  ' + w);
 
 
 				var s = w*0.8;
