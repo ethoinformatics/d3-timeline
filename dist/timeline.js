@@ -17055,6 +17055,7 @@ function Timeline(opts){
 		zoom,
 		text;
 
+	console.dir(h);
 	EventEmitter.call(self);
 
 	self.element = window.document.createElement('div');
@@ -17087,7 +17088,7 @@ function Timeline(opts){
 
 	function render(){
 		//console.log('0');
-		h = window.innerHeight - HEADER_HEIGHT,
+		//h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
 
 		_.sortBy(items, getBeginDateTime);
@@ -17103,14 +17104,16 @@ function Timeline(opts){
 		} else {
 			zoom = d3.behavior.zoom()
 				.x(timeScale)
+				.translate([0, 0])
+				.scale(1)
 				.scaleExtent([0.6,1000])
 				.on('zoom', onZoom);
 
 			svg = d3.select(self.element)
 				.append('svg')
 				.attr('width', w)
-				.attr('height', h)
-				.call(zoom);
+				.attr('height', h);
+
 
 			svg
 				.append('rect')
@@ -17170,16 +17173,19 @@ function Timeline(opts){
 		newGroups
 			.append('text')
 			.style('opacity', 0.3)
-			.attr('fill', function(){ return 'black';/*d.color;*/})
+			.attr('fill', function(){ return 'black';/*d.color;*/});
+		
+
+		groups.select('text')
 			.attr('font-size', verticalScale.rangeBand()/2)
 			.attr('y', function(d, i){ 
+				console.dir(i);
+				console.dir(d);
 				var h = barHeight * 3/4;
 				return verticalScale(i) +h ;
 			})
+			.text(opts.getLabel)
 			.call(setTextPosition);
-
-		groups.selectAll('text')
-			.text(opts.getLabel);
 		//console.log('3');
 
 		var arc = d3.svg.symbol()
@@ -17197,6 +17203,34 @@ function Timeline(opts){
 			})
 			.attr('fill', opts.getColor)
 			.on('click', function(d){
+				// reset the zoom
+				zoom
+					.scale(1)
+					.translate([0,0]);
+
+				var barStart = computeBarStart(d);
+				var barWidth = computeBarWidth(d);
+
+				console.log('2barWidth vs width: ' + barWidth + '  ' + w);
+
+
+				var s = w*0.8;
+				var scale = s/(barWidth + barStart);
+				var x = (w-(scale*(barWidth+barStart)))/2;
+
+				console.log('scale: ' + scale);
+				console.log('x: ' + x);
+				console.log('barStart: ' + barStart);
+				console.log('barWidth: ' + barWidth);
+				
+
+
+				svg.transition()
+					.call(zoom.translate([x, 200]).scale(scale).event)
+				;
+
+
+
 				self.emit('left-click', d);
 			});
 
@@ -17230,6 +17264,12 @@ function Timeline(opts){
 			.style('opacity',0)
 			.remove();
 
+		background = svg.selectAll('g.activity rect.background');
+		foreground = svg.selectAll('g.activity rect.foreground');
+		leftArrow = svg.selectAll('g.activity .left-arrow');
+		rightArrow = svg.selectAll('g.activity .right-arrow');
+		text = svg.selectAll('g.activity text');
+
 		if (!timeAxis){
 			timeAxis = d3.svg.axis()
 				.scale(timeScale)
@@ -17240,6 +17280,10 @@ function Timeline(opts){
 				.attr('transform', 'translate(0, '+(h-AXIS_HEIGHT)+')')
 				.call(timeAxis);
 
+			svg
+				.call(zoom)
+				.call(zoom.event);
+
 		} else {
 			
 			timeAxis.scale(timeScale);
@@ -17249,11 +17293,6 @@ function Timeline(opts){
 				.call(timeAxis);
 		}
 
-		background = svg.selectAll('g.activity rect.background');
-		foreground = svg.selectAll('g.activity rect.foreground');
-		leftArrow = svg.selectAll('g.activity .left-arrow');
-		rightArrow = svg.selectAll('g.activity .right-arrow');
-		text = svg.selectAll('g.activity text');
 
 		setArrowVisibility();
 	}
@@ -17271,6 +17310,7 @@ function Timeline(opts){
 
 		// console.log('min: ' + minTime);
 		// console.log('max: ' + maxTime);
+		console.log('in ensureTimeScale');
 
 		if (!timeScale) timeScale = d3.time.scale();
 
@@ -17281,24 +17321,35 @@ function Timeline(opts){
 		return timeScale;
 	}
 
+	function computeBarWidth(d){
+		var begin = timeScale(getBeginDateTime(d)), v;
+
+		if (d.endTime) {
+			v = timeScale(getEndDateTime(d)) - begin;
+		} else {
+			v = timeScale(new Date()) - begin;
+		}
+		return Math.max(v, 6);
+	}
+	function computeBarStart(d){
+		var x = timeScale(getBeginDateTime(d));
+		//console.log('barStart: ' + x);
+		//console.dir(x);
+		return x;
+	}
+
 	function setHorizontalPosition(selection){
 		selection
 			.attr('x', function(d){
-				var x = timeScale(getBeginDateTime(d));
-				//console.dir(x);
-				return x;
+				return computeBarStart(d);
 			})
 			.attr('width', function(d){ 
-				var begin = timeScale(getBeginDateTime(d)), v;
-
-				if (d.endTime) {
-					v = timeScale(getEndDateTime(d)) - begin;
-				} else {
-					v = timeScale(new Date()) - begin;
-				}
-
-				return Math.max(v, 6);
+				return computeBarWidth(d);
 			});
+
+		// if (d3.event && d3.translate){
+		// 	selection.attr('transform', 'translate(' + d3.event.translate+')');
+		// }
 
 		return selection;
 	}

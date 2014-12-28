@@ -154,16 +154,17 @@ function Timeline(opts){
 		newGroups
 			.append('text')
 			.style('opacity', 0.3)
-			.attr('fill', function(){ return 'black';/*d.color;*/})
+			.attr('fill', function(){ return 'black';/*d.color;*/});
+		
+
+		groups.select('text')
 			.attr('font-size', verticalScale.rangeBand()/2)
 			.attr('y', function(d, i){ 
 				var h = barHeight * 3/4;
 				return verticalScale(i) +h ;
 			})
+			.text(opts.getLabel)
 			.call(setTextPosition);
-
-		groups.selectAll('text')
-			.text(opts.getLabel);
 		//console.log('3');
 
 		var arc = d3.svg.symbol()
