@@ -4,45 +4,96 @@
 	<head>
 	</head>
 	<body>
+		<div>
+			<button type="button" onclick="doAdd()">Add a delicious treat</button>
+		</div>
 		<script src="timeline.js"></script>
 		<script>
+			var itemsToAdd = [{
+						beginTime: new Date(2014, 7, 30),
+						endTime: new Date(2014, 8, 1),
+						desc: 'pizza',
+					},
+					{
+						beginTime: new Date(2014, 8, 2),
+						endTime: new Date(2014, 8, 4),
+						desc: 'sandwich'
+					},
+					{
+						beginTime: new Date(2014, 8, 2),
+						endTime: new Date(2014, 8, 3),
+						desc: 'cheeseburger',
+					},
+					{
+						beginTime: new Date(2014, 8, 2),
+						endTime: new Date(2014, 8, 6),
+						desc: 'broccoli',
+					},
+					{
+						beginTime: new Date(2014, 8, 8),
+						endTime: new Date(2014, 8, 10),
+						desc: 'carrots',
+					},
+					{
+						beginTime: new Date(2014, 8, 1),
+						endTime: new Date(2014, 8, 3),
+						desc: 'burrito',
+					},
+					{
+						beginTime: new Date(2014, 8, 1),
+						endTime: new Date(2014, 8, 3),
+						desc: 'jam',
+					},
+					{
+						beginTime: new Date(2014, 8, 1),
+						endTime: new Date(2014, 8, 3),
+						desc: 'tomato',
+					},
+					{
+						beginTime: new Date(2014, 8, 1),
+						endTime: new Date(2014, 8, 3),
+						desc: 'peanut',
+					},
+					{
+						beginTime: new Date(2014, 8, 8),
+						endTime: new Date(2014, 8, 10),
+						desc: 'tuna',
+					},
+					{
+						beginTime: new Date(2014, 8, 1),
+						endTime: new Date(2014, 8, 3),
+						desc: 'cheese',
+					},
+					{
+						beginTime: new Date(2014, 7, 23),
+						endTime: new Date(2014, 7, 24),
+						desc: 'mustard',
+					},
+					{
+						beginTime: new Date(2014, 7, 13),
+						endTime: new Date(2014, 7, 14),
+						desc: 'ketchup',
+					},
+				];
+
+			function doAdd(){
+				if (itemsToAdd.length === 0) return window.alert('we are out of treats!');
+				myTimeline.add(itemsToAdd.shift());
+			}
 			var myTimeline = timeline({
 					getBegin: function(d){ return d.beginTime; },
 					getEnd: function(d){ return d.endTime; },
 					getLabel: function(d){ return d.desc; },
 				});
 
-			myTimeline.add([{
-					beginTime: new Date(2014, 7, 30),
-					endTime: new Date(2014, 8, 1),
-					desc: 'pizza',
-				},
-				{
-					beginTime: new Date(2014, 8, 2),
-					endTime: new Date(2014, 8, 4),
-					desc: 'sandwich'
-				},
-				{
-					beginTime: new Date(2014, 8, 2),
-					endTime: new Date(2014, 8, 3),
-					desc: 'cheeseburger',
-				},
-				{
-					beginTime: new Date(2014, 8, 2),
-					endTime: new Date(2014, 8, 6),
-					desc: 'broccoli',
-				}]
-			);
-
 			myTimeline.on('activity-click', function(item){
 					myTimeline.remove(item);
+					//itemsToAdd.shift(item);
 				});
 			myTimeline.on('left-click', function(item){
-					window.alert('got a left arrow click');
 					console.dir(item);
 				});
 			myTimeline.on('right-click', function(item){
-					window.alert('got a right arrow click');
 					console.dir(item);
 				});
 			window.document.body.appendChild(myTimeline.element);
