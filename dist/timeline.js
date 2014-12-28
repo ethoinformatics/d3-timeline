@@ -17179,8 +17179,6 @@ function Timeline(opts){
 		groups.select('text')
 			.attr('font-size', verticalScale.rangeBand()/2)
 			.attr('y', function(d, i){ 
-				console.dir(i);
-				console.dir(d);
 				var h = barHeight * 3/4;
 				return verticalScale(i) +h ;
 			})
@@ -17195,12 +17193,6 @@ function Timeline(opts){
 		newGroups
 			.append('path')
 			.classed('left-arrow', true)
-			.attr('d', arc)
-			.attr('transform', function(d, i){ 
-				var h = verticalScale(i) + (barHeight/2);
-				var x = (barHeight/3) +4;
-				return 'translate('+x+',' + h +') rotate(-90)';
-			})
 			.attr('fill', opts.getColor)
 			.on('click', function(d){
 				// reset the zoom
@@ -17238,17 +17230,26 @@ function Timeline(opts){
 		newGroups
 			.append('path')
 			.classed('right-arrow', true)
+			.attr('fill', opts.getColor)
+			.on('click', function(d){
+				self.emit('right-click', d);
+			});
+
+		groups.select('.left-arrow')
+			.attr('d', arc)
+			.attr('transform', function(d, i){ 
+				var h = verticalScale(i) + (barHeight/2);
+				var x = (barHeight/3) +4;
+				return 'translate('+x+',' + h +') rotate(-90)';
+			})
+
+		groups.select('.right-arrow')
 			.attr('d', arc)
 			.attr('transform', function(d, i){ 
 				var h = verticalScale(i) + (barHeight/2);
 				var x = w - ((barHeight/3) +4);
 				return 'translate('+x+','+  h +') rotate(90)';
 			})
-			.attr('fill', opts.getColor)
-			.on('click', function(d){
-				self.emit('right-click', d);
-			});
-
 		
 		// activityGroups
 		// 	.append('text')
