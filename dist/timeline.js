@@ -17063,6 +17063,7 @@ function Timeline(opts){
 	self.add = function(itemsToAdd){
 		_.flatten([itemsToAdd])
 			.forEach(function(item){
+				if (item === null || item === undefined) return;
 				items.push(item);
 			});
 
@@ -17075,6 +17076,10 @@ function Timeline(opts){
 	};
 
 	self.update = render;
+
+	function getBarHeight(){
+		return Math.min(verticalScale.rangeBand(), h/6);
+	}
 
 	function getBeginDateTime(item){
 		var val = opts.getBegin(item);
@@ -17167,7 +17172,7 @@ function Timeline(opts){
 			.attr('fill', opts.getColor)
 			.call(setHorizontalPosition);
 
-		var barHeight = verticalScale.rangeBand();
+		var barHeight = getBarHeight();
 		var triangleSize = (barHeight*barHeight)/4;
 
 		newGroups
@@ -17177,7 +17182,7 @@ function Timeline(opts){
 		
 
 		groups.select('text')
-			.attr('font-size', verticalScale.rangeBand()/2)
+			.attr('font-size', barHeight/2)
 			.attr('y', function(d, i){ 
 				var h = barHeight * 3/4;
 				return verticalScale(i) +h ;
@@ -17357,7 +17362,7 @@ function Timeline(opts){
 
 	function setVerticalPosition(selection){
 		selection
-			.attr('height', verticalScale.rangeBand())
+			.attr('height', getBarHeight())
 			.attr('y', function(d, i){ return verticalScale(i); });
 
 		return selection;
