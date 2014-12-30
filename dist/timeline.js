@@ -17017,6 +17017,8 @@ function hasOwnProperty(obj, prop) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],8:[function(require,module,exports){
+require('./index.less');
+
 var d3 = require('d3'),
 	color = d3.scale.category20b(),
 	_ = require('lodash'),
@@ -17042,18 +17044,21 @@ function Timeline(opts){
 		items = [],
 		foreground,
 		background,
+		groups,
 		leftArrow,
 		rightArrow,
-		HEADER_HEIGHT = 44*2,
-		h = opts.height || window.innerHeight - HEADER_HEIGHT,
+		SCALE_HEIGHT = 32,
+		h = opts.height || window.innerHeight*0.8,
 		w = opts.width || window.innerWidth,
+		barsViewHeight = h - (SCALE_HEIGHT*2),
 		svg,
 		timeAxis,
+		topTimeAxis,
 		timeScale,
 		verticalScale,
-		AXIS_HEIGHT = 35,
 		zoom,
-		text;
+		text,
+		getHugeDateString = d3.time.format('%A, %B %e,  %Y %I:%M%p');
 
 	console.dir(h);
 	EventEmitter.call(self);
@@ -17072,6 +17077,7 @@ function Timeline(opts){
 
 	self.remove = function(toRemove){
 		_.remove(items, toRemove);
+
 		render();
 	};
 
@@ -17091,7 +17097,19 @@ function Timeline(opts){
 		return  val instanceof Date ? val :new Date(val);
 	}
 
+	function exitTransition(selection){
+		selection
+			.exit()
+			.selectAll('rect,text')
+			.transition()
+			.duration(400)
+			.style('opacity', 0)
+			.style('font-size', 0)
+			.remove();
+	}
+
 	function render(){
+		console.log('in render');
 		//console.log('0');
 		//h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
@@ -17111,11 +17129,12 @@ function Timeline(opts){
 				.x(timeScale)
 				.translate([0, 0])
 				.scale(1)
-				.scaleExtent([0.6,1000])
+				.scaleExtent([1,100])
 				.on('zoom', onZoom);
 
 			svg = d3.select(self.element)
 				.append('svg')
+				.classed('the-timeline', true)
 				.attr('width', w)
 				.attr('height', h);
 
@@ -17131,23 +17150,33 @@ function Timeline(opts){
 		//console.log('1');
 		verticalScale = d3.scale.ordinal()
 			.domain(d3.range(items.length))
-			.rangeRoundBands([0,(h-AXIS_HEIGHT)], 0.05);
+			.rangeRoundBands([0,barsViewHeight], 0.05);
 
-		var groups = svg.selectAll('g.activity')
-			.data(items);
+		groups = svg.selectAll('g.activity')
+			.data(items, function(item){return item.desc;});
+
+		groups.call(exitTransition);
 
 		groups.select('rect.background')
+			.transition()
 			.call(setVerticalPosition);
 
 		groups.select('rect.foreground')
-			.call(setVerticalPosition);
+			.attr('fill', opts.getColor)
+			.call(setHorizontalPosition)
+			.transition()
+			.call(setVerticalPosition)
 
 		var newGroups = groups
 			.enter()
 			.append('g')
 			.classed('activity', true)
-			.attr('data-id', function(d){ return d._id; });
+			.style('opacity', 0)
 
+		newGroups
+			.transition()
+			.style('opacity', 1)
+			.attr('data-id', function(d){ return d._id; });
 		//console.log('2');
 		// background bar
 		newGroups
@@ -17166,11 +17195,14 @@ function Timeline(opts){
 				d3.event.stopPropagation();
 				self.emit('activity-click', d);
 			})
-			.attr('width', 0)
+			.attr('width', 10)
+			.attr('height', 0)
+			.style('opacity', '0')
 			.call(setVerticalPosition)
-			.transition()
+			.style('opacity', '1')
 			.attr('fill', opts.getColor)
-			.call(setHorizontalPosition);
+			.call(setHorizontalPosition)
+
 
 		var barHeight = getBarHeight();
 		var triangleSize = (barHeight*barHeight)/4;
@@ -17182,12 +17214,13 @@ function Timeline(opts){
 		
 
 		groups.select('text')
+			.text(opts.getLabel)
+			.transition()
 			.attr('font-size', barHeight/2)
 			.attr('y', function(d, i){ 
 				var h = barHeight * 3/4;
-				return verticalScale(i) +h ;
+				return verticalScale(i) +h + SCALE_HEIGHT;
 			})
-			.text(opts.getLabel)
 			.call(setTextPosition);
 		//console.log('3');
 
@@ -17243,32 +17276,19 @@ function Timeline(opts){
 		groups.select('.left-arrow')
 			.attr('d', arc)
 			.attr('transform', function(d, i){ 
-				var h = verticalScale(i) + (barHeight/2);
+				var h = verticalScale(i) + (barHeight/2) + SCALE_HEIGHT;
 				var x = (barHeight/3) +4;
 				return 'translate('+x+',' + h +') rotate(-90)';
-			})
+			});
 
 		groups.select('.right-arrow')
 			.attr('d', arc)
 			.attr('transform', function(d, i){ 
-				var h = verticalScale(i) + (barHeight/2);
+				var h = verticalScale(i) + (barHeight/2) + SCALE_HEIGHT;
 				var x = w - ((barHeight/3) +4);
 				return 'translate('+x+','+  h +') rotate(90)';
-			})
+			});
 		
-		// activityGroups
-		// 	.append('text')
-		// 	.text(function(d){ return d.type; })
-		// 	.attr('y', function(d, i){ return yScale(i) + yScale.rangeBand()/2; })
-		// 	.attr('height', yScale.rangeBand())
-
-		groups
-			.exit()
-			.transition()
-			.attr('width',0)
-			.attr('height',0)
-			.style('opacity',0)
-			.remove();
 
 		background = svg.selectAll('g.activity rect.background');
 		foreground = svg.selectAll('g.activity rect.foreground');
@@ -17276,6 +17296,9 @@ function Timeline(opts){
 		rightArrow = svg.selectAll('g.activity .right-arrow');
 		text = svg.selectAll('g.activity text');
 
+
+
+		console.log('a');
 		if (!timeAxis){
 			timeAxis = d3.svg.axis()
 				.scale(timeScale)
@@ -17283,29 +17306,64 @@ function Timeline(opts){
 
 			svg.append('g')
 				.attr('class', 'time-axis')
-				.attr('transform', 'translate(0, '+(h-AXIS_HEIGHT)+')')
+				.attr('transform', 'translate(0, '+(h-SCALE_HEIGHT)+')')
 				.call(timeAxis);
 
-			svg
-				.call(zoom)
-				.call(zoom.event);
 
 		} else {
 			
 			timeAxis.scale(timeScale);
 			svg.select('.time-axis')
 				.transition()
-				.attr('transform', 'translate(0, '+(h-AXIS_HEIGHT)+')')
+				.attr('transform', 'translate(0, '+(h-SCALE_HEIGHT)+')')
 				.call(timeAxis);
+		}
+		console.log('b');
+
+		if (!topTimeAxis){
+			topTimeAxis = d3.svg.axis()
+				.scale(timeScale)
+				.orient('top')
+				.tickValues(timeScale.domain())
+				.tickFormat(function(d, i){
+						return getHugeDateString(d);
+				});
+
+			svg.append('g')
+				.attr('class', 'top-time-axis')
+				.attr('transform', 'translate(0, '+(SCALE_HEIGHT)+')')
+				.call(topTimeAxis);
+
+
+		} else {
+			
+			topTimeAxis
+				.scale(timeScale)
+				.tickValues(timeScale.domain());
+
+			svg.select('.top-time-axis')
+				.transition()
+				.attr('transform', 'translate(0, '+(SCALE_HEIGHT)+')')
+				.call(topTimeAxis);
 		}
 
 
 		setArrowVisibility();
+		// svg
+		// 	.call(zoom)
+		// 	.call(zoom.event);
+	}
+
+	function getMinDateTime(activities){
+		return d3.min(activities, getBeginDateTime);
+	}
+	function getMaxDateTime(activities){
+		return d3.max(activities, getEndDateTime);
 	}
 
 	function ensureTimeScale(activities){
-		var minTime = d3.min(activities, getBeginDateTime),
-			maxTime = d3.max(activities, getEndDateTime);
+		var minTime = getMinDateTime(activities),
+			maxTime = getMaxDateTime(activities);
 
 		maxTime = maxTime || new Date();
 		minTime = minTime || (function(){ 
@@ -17316,16 +17374,17 @@ function Timeline(opts){
 
 		// console.log('min: ' + minTime);
 		// console.log('max: ' + maxTime);
-		console.log('in ensureTimeScale');
+		// console.log('in ensureTimeScale');
 
 		if (!timeScale) timeScale = d3.time.scale();
 
-		timeScale = timeScale
+		timeScale
 			.domain([minTime, maxTime])
 			.range([10, w-10]);
 
 		return timeScale;
 	}
+
 
 	function computeBarWidth(d){
 		var begin = timeScale(getBeginDateTime(d)), v;
@@ -17363,7 +17422,7 @@ function Timeline(opts){
 	function setVerticalPosition(selection){
 		selection
 			.attr('height', getBarHeight())
-			.attr('y', function(d, i){ return verticalScale(i); });
+			.attr('y', function(d, i){ return verticalScale(i) + SCALE_HEIGHT; });
 
 		return selection;
 	}
@@ -17390,10 +17449,12 @@ function Timeline(opts){
 	}
 
 	function onZoom(){
-		//console.log('i am zooming');
+		console.log('i be zooming');
 		svg.selectAll('.time-axis')
-			//.transition()
 			.call(timeAxis);
+
+		svg.selectAll('.top-time-axis')
+			.call(topTimeAxis);
 
 		foreground.call(setHorizontalPosition);
 		text.call(setTextPosition);
@@ -17427,5 +17488,7 @@ function Timeline(opts){
 
 module.exports = Timeline;
 
-},{"d3":6,"events":1,"lodash":7,"util":5}]},{},[8])(8)
+},{"./index.less":9,"d3":6,"events":1,"lodash":7,"util":5}],9:[function(require,module,exports){
+(function() { var head = document.getElementsByTagName('head')[0]; style = document.createElement('style'); style.type = 'text/css';var css = ".the-timeline{font-family:sans-serif}.the-timeline .top-time-axis g.tick:nth-child(1) text{text-anchor:start !important}.the-timeline .top-time-axis g.tick:nth-child(2) text{text-anchor:end !important}.the-timeline .top-time-axis text,.the-timeline .time-axis text{font-size:10px}.the-timeline .top-time-axis path,.the-timeline .time-axis path,.the-timeline .top-time-axis line,.the-timeline .time-axis line{fill:none;stroke:#000;shape-rendering:crispEdges}";if (style.styleSheet){ style.styleSheet.cssText = css; } else { style.appendChild(document.createTextNode(css)); } head.appendChild(style);}())
+},{}]},{},[8])(8)
 });
