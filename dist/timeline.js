@@ -17100,7 +17100,7 @@ function Timeline(opts){
 	function exitTransition(selection){
 		selection
 			.exit()
-			.selectAll('rect,text')
+			.selectAll('rect,text,path')
 			.transition()
 			.duration(400)
 			.style('opacity', 0)
@@ -17117,6 +17117,7 @@ function Timeline(opts){
 		_.sortBy(items, getBeginDateTime);
 		timeScale = ensureTimeScale(items);
 
+		console.log('111');
 		if (svg){
 			svg.attr('width', w)
 				.attr('height', h);
@@ -17124,6 +17125,9 @@ function Timeline(opts){
 			svg.selectAll('rect.container')
 				.attr('width', w)
 				.attr('height', h);
+
+			zoom.x(timeScale)
+
 		} else {
 			zoom = d3.behavior.zoom()
 				.x(timeScale)
@@ -17145,7 +17149,12 @@ function Timeline(opts){
 				.style('opacity', 0)
 				.attr('width', w)
 				.attr('height', h);
+
+			svg
+				.call(zoom)
+				.call(zoom.event);
 		}
+		console.log('222');
 
 		//console.log('1');
 		verticalScale = d3.scale.ordinal()
@@ -17349,9 +17358,6 @@ function Timeline(opts){
 
 
 		setArrowVisibility();
-		// svg
-		// 	.call(zoom)
-		// 	.call(zoom.event);
 	}
 
 	function getMinDateTime(activities){
@@ -17376,7 +17382,8 @@ function Timeline(opts){
 		// console.log('max: ' + maxTime);
 		// console.log('in ensureTimeScale');
 
-		if (!timeScale) timeScale = d3.time.scale();
+		if (!timeScale) 
+			timeScale = d3.time.scale();
 
 		timeScale
 			.domain([minTime, maxTime])
@@ -17450,16 +17457,25 @@ function Timeline(opts){
 
 	function onZoom(){
 		console.log('i be zooming');
-		svg.selectAll('.time-axis')
-			.call(timeAxis);
+		if (timeAxis)
+			svg.selectAll('.time-axis')
+				.call(timeAxis);
 
-		svg.selectAll('.top-time-axis')
-			.call(topTimeAxis);
+		if (timeAxis)
+			svg.selectAll('.top-time-axis')
+				.call(topTimeAxis);
 
-		foreground.call(setHorizontalPosition);
-		text.call(setTextPosition);
+		console.log('still zooming');
 
-		setArrowVisibility();
+
+		if (foreground)
+			foreground.call(setHorizontalPosition);
+
+		if (text)
+			text.call(setTextPosition);
+
+		if (leftArrow && rightArrow)
+			setArrowVisibility();
 	}
 
 	function setArrowVisibility(){

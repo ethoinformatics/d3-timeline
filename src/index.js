@@ -41,7 +41,6 @@ function Timeline(opts){
 		text,
 		getHugeDateString = d3.time.format('%A, %B %e,  %Y %I:%M%p');
 
-	console.dir(h);
 	EventEmitter.call(self);
 
 	self.element = window.document.createElement('div');
@@ -81,7 +80,7 @@ function Timeline(opts){
 	function exitTransition(selection){
 		selection
 			.exit()
-			.selectAll('rect,text')
+			.selectAll('rect,text,path')
 			.transition()
 			.duration(400)
 			.style('opacity', 0)
@@ -90,8 +89,6 @@ function Timeline(opts){
 	}
 
 	function render(){
-		console.log('in render');
-		//console.log('0');
 		//h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
 
@@ -105,6 +102,9 @@ function Timeline(opts){
 			svg.selectAll('rect.container')
 				.attr('width', w)
 				.attr('height', h);
+
+			zoom.x(timeScale)
+
 		} else {
 			zoom = d3.behavior.zoom()
 				.x(timeScale)
@@ -126,9 +126,12 @@ function Timeline(opts){
 				.style('opacity', 0)
 				.attr('width', w)
 				.attr('height', h);
+
+			svg
+				.call(zoom)
+				.call(zoom.event);
 		}
 
-		//console.log('1');
 		verticalScale = d3.scale.ordinal()
 			.domain(d3.range(items.length))
 			.rangeRoundBands([0,barsViewHeight], 0.05);
@@ -146,19 +149,19 @@ function Timeline(opts){
 			.attr('fill', opts.getColor)
 			.call(setHorizontalPosition)
 			.transition()
-			.call(setVerticalPosition)
+			.call(setVerticalPosition);
 
 		var newGroups = groups
 			.enter()
 			.append('g')
 			.classed('activity', true)
-			.style('opacity', 0)
+			.style('opacity', 0);
 
 		newGroups
 			.transition()
 			.style('opacity', 1)
 			.attr('data-id', function(d){ return d._id; });
-		//console.log('2');
+
 		// background bar
 		newGroups
 			.append('rect')
@@ -203,7 +206,6 @@ function Timeline(opts){
 				return verticalScale(i) +h + SCALE_HEIGHT;
 			})
 			.call(setTextPosition);
-		//console.log('3');
 
 		var arc = d3.svg.symbol()
 			.type('triangle-up')
@@ -229,23 +231,14 @@ function Timeline(opts){
 				var scale = s/(barWidth + barStart);
 				var x = (w-(scale*(barWidth+barStart)))/2;
 
-				console.log('scale: ' + scale);
-				console.log('x: ' + x);
-				console.log('barStart: ' + barStart);
-				console.log('barWidth: ' + barWidth);
-				
-
 
 				svg.transition()
 					.call(zoom.translate([x, 200]).scale(scale).event)
 				;
 
-
-
 				self.emit('left-click', d);
 			});
 
-		//console.log('4');
 		newGroups
 			.append('path')
 			.classed('right-arrow', true)
@@ -279,7 +272,6 @@ function Timeline(opts){
 
 
 
-		console.log('a');
 		if (!timeAxis){
 			timeAxis = d3.svg.axis()
 				.scale(timeScale)
@@ -299,7 +291,6 @@ function Timeline(opts){
 				.attr('transform', 'translate(0, '+(h-SCALE_HEIGHT)+')')
 				.call(timeAxis);
 		}
-		console.log('b');
 
 		if (!topTimeAxis){
 			topTimeAxis = d3.svg.axis()
@@ -330,9 +321,6 @@ function Timeline(opts){
 
 
 		setArrowVisibility();
-		// svg
-		// 	.call(zoom)
-		// 	.call(zoom.event);
 	}
 
 	function getMinDateTime(activities){
@@ -357,7 +345,8 @@ function Timeline(opts){
 		// console.log('max: ' + maxTime);
 		// console.log('in ensureTimeScale');
 
-		if (!timeScale) timeScale = d3.time.scale();
+		if (!timeScale) 
+			timeScale = d3.time.scale();
 
 		timeScale
 			.domain([minTime, maxTime])
@@ -379,8 +368,6 @@ function Timeline(opts){
 	}
 	function computeBarStart(d){
 		var x = timeScale(getBeginDateTime(d));
-		//console.log('barStart: ' + x);
-		//console.dir(x);
 		return x;
 	}
 
@@ -430,17 +417,22 @@ function Timeline(opts){
 	}
 
 	function onZoom(){
-		console.log('i be zooming');
-		svg.selectAll('.time-axis')
-			.call(timeAxis);
+		if (timeAxis)
+			svg.selectAll('.time-axis')
+				.call(timeAxis);
 
-		svg.selectAll('.top-time-axis')
-			.call(topTimeAxis);
+		if (timeAxis)
+			svg.selectAll('.top-time-axis')
+				.call(topTimeAxis);
 
-		foreground.call(setHorizontalPosition);
-		text.call(setTextPosition);
+		if (foreground)
+			foreground.call(setHorizontalPosition);
 
-		setArrowVisibility();
+		if (text)
+			text.call(setTextPosition);
+
+		if (leftArrow && rightArrow)
+			setArrowVisibility();
 	}
 
 	function setArrowVisibility(){
