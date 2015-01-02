@@ -114,6 +114,10 @@ function Timeline(opts){
 			.remove();
 	}
 
+	function dateEquals(a, b){
+		return dateMath.second.diff(a, b) === 0;
+	}
+
 	function render(){
 		//h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
@@ -197,6 +201,8 @@ function Timeline(opts){
 			.style('fill', '#f8f8f8')
 			.call(setVerticalPosition);
 
+		var barHeight = getBarHeight();
+
 		// colored graph bar
 		newGroups
 			.append('rect')
@@ -228,10 +234,26 @@ function Timeline(opts){
 			.call(setVerticalPosition)
 			.style('opacity', '1')
 			.attr('fill', opts.getColor)
-			.call(setHorizontalPosition);
+			.call(setHorizontalPosition)
+			.each(function(d, i){
+				var begin = getBeginDateTime(d),
+					end = getEndDateTime(d);
+
+				if (dateEquals(begin, end)){
+					console.log('should be a circle');
+					d3.select(this)
+						.attr('height', barHeight/2)
+						.attr('width', barHeight/2)
+						.attr('rx', barHeight/4)
+						.attr('ry', barHeight/4)
+						.attr('y', function(){ 
+							return verticalScale(i) + SCALE_HEIGHT + (barHeight/4);
+						})
+						.classed('event', true);
+				}
+			});
 
 
-		var barHeight = getBarHeight();
 		var triangleSize = (barHeight*barHeight)/4;
 
 		newGroups
@@ -421,9 +443,10 @@ function Timeline(opts){
 			.attr('x', function(d){
 				return computeBarStart(d);
 			})
+			.filter('*:not(.event)')
 			.attr('width', function(d){ 
 				return computeBarWidth(d);
-			});
+			})
 
 		// if (d3.event && d3.translate){
 		// 	selection.attr('transform', 'translate(' + d3.event.translate+')');
@@ -434,8 +457,27 @@ function Timeline(opts){
 
 	function setVerticalPosition(selection){
 		selection
-			.attr('height', getBarHeight())
-			.attr('y', function(d, i){ return verticalScale(i) + SCALE_HEIGHT; });
+			.each(function(d, i){
+				var barHeight = getBarHeight(),
+					$this = d3.select(this);
+
+				if (!$this.classed('event')){
+					return $this
+						.attr('height', barHeight)
+						.attr('y', function(){ 
+							return verticalScale(i) + SCALE_HEIGHT; 
+						});
+				}
+
+				$this
+					.attr('height', barHeight/2)
+					.attr('width', barHeight/2)
+					.attr('rx', barHeight/4)
+					.attr('ry', barHeight/4)
+					.attr('y', function(){ 
+						return verticalScale(i) + SCALE_HEIGHT + (barHeight/4);
+					});
+			});
 
 		return selection;
 	}

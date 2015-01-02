@@ -17913,91 +17913,67 @@ module.exports = vash.link(function anonymous(model, html, __vopts, vash) {
         html.vl = 10, html.vc = 0;
         __vbuffer.push('\n');
         html.vl = 11, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 11, html.vc = 1;
+        __vbuffer.push('<filter id="glow" x="-40%" y="-40%" width="180%" height="180%">');
+        html.vl = 11, html.vc = 64;
         __vbuffer.push('\n');
         html.vl = 12, html.vc = 0;
-        __vbuffer.push(' ');
+        __vbuffer.push('\t');
         html.vl = 12, html.vc = 1;
-        __vbuffer.push('<filter id="glow" x="-40%" y="-40%" width="180%" height="180%">');
-        html.vl = 12, html.vc = 64;
+        __vbuffer.push('\t');
+        html.vl = 12, html.vc = 2;
+        __vbuffer.push('<feGaussianBlur in="SourceAlpha" result="blur-out" stdDeviation="2" ');
+        html.vl = 12, html.vc = 70;
+        __vbuffer.push('/>');
+        html.vl = 12, html.vc = 72;
         __vbuffer.push('\n');
         html.vl = 13, html.vc = 0;
-        __vbuffer.push(' ');
+        __vbuffer.push('\t');
         html.vl = 13, html.vc = 1;
-        __vbuffer.push(' ');
+        __vbuffer.push('\t');
         html.vl = 13, html.vc = 2;
-        __vbuffer.push(' ');
-        html.vl = 13, html.vc = 3;
-        __vbuffer.push(' ');
-        html.vl = 13, html.vc = 4;
-        __vbuffer.push('<feGaussianBlur in="SourceAlpha" result="blur-out" stdDeviation="2" ');
-        html.vl = 13, html.vc = 72;
+        __vbuffer.push('<feOffset in="blur-out" result="the-shadow" dx="10" dy="0"');
+        html.vl = 13, html.vc = 60;
         __vbuffer.push('/>');
-        html.vl = 13, html.vc = 74;
+        html.vl = 13, html.vc = 62;
+        __vbuffer.push(' ');
+        html.vl = 13, html.vc = 63;
         __vbuffer.push('\n');
         html.vl = 14, html.vc = 0;
-        __vbuffer.push(' ');
+        __vbuffer.push('\t');
         html.vl = 14, html.vc = 1;
-        __vbuffer.push(' ');
+        __vbuffer.push('\t');
         html.vl = 14, html.vc = 2;
-        __vbuffer.push(' ');
-        html.vl = 14, html.vc = 3;
-        __vbuffer.push(' ');
-        html.vl = 14, html.vc = 4;
-        __vbuffer.push('<feOffset in="blur-out" result="the-shadow" dx="10" dy="0"');
-        html.vl = 14, html.vc = 62;
+        __vbuffer.push('<feColorMatrix in="the-shadow" result="color-out" type="matrix"\n\t\t\tvalues="1 1 1 0   1\n\t\t\t\t\t1 0 0 0   1 \n\t\t\t\t\t1 0 0 0   0 \n\t\t\t\t\t0 0 0 .5 0"');
+        html.vl = 14, html.vc = 141;
         __vbuffer.push('/>');
-        html.vl = 14, html.vc = 64;
-        __vbuffer.push(' ');
-        html.vl = 14, html.vc = 65;
+        html.vl = 14, html.vc = 143;
         __vbuffer.push('\n');
         html.vl = 15, html.vc = 0;
-        __vbuffer.push(' ');
+        __vbuffer.push('\t');
         html.vl = 15, html.vc = 1;
-        __vbuffer.push(' ');
+        __vbuffer.push('\t');
         html.vl = 15, html.vc = 2;
-        __vbuffer.push(' ');
-        html.vl = 15, html.vc = 3;
-        __vbuffer.push(' ');
-        html.vl = 15, html.vc = 4;
-        __vbuffer.push('<feColorMatrix in="the-shadow" result="color-out" type="matrix"\n      values="1 1 1 0   1\n              1 0 0 0   1 \n              1 0 0 0   0 \n              0 0 0 .5 0"');
-        html.vl = 15, html.vc = 173;
+        __vbuffer.push('<feBlend in="SourceGraphic" in2="color-out" mode="normal"');
+        html.vl = 15, html.vc = 59;
         __vbuffer.push('/>');
-        html.vl = 15, html.vc = 175;
+        html.vl = 15, html.vc = 61;
         __vbuffer.push('\n');
         html.vl = 16, html.vc = 0;
-        __vbuffer.push(' ');
+        __vbuffer.push('\t');
         html.vl = 16, html.vc = 1;
-        __vbuffer.push(' ');
-        html.vl = 16, html.vc = 2;
-        __vbuffer.push(' ');
-        html.vl = 16, html.vc = 3;
-        __vbuffer.push(' ');
-        html.vl = 16, html.vc = 4;
-        __vbuffer.push('<feBlend in="SourceGraphic" in2="color-out" mode="normal"');
-        html.vl = 16, html.vc = 61;
-        __vbuffer.push('/>');
-        html.vl = 16, html.vc = 63;
+        __vbuffer.push('</filter>');
+        html.vl = 16, html.vc = 10;
         __vbuffer.push('\n');
         html.vl = 17, html.vc = 0;
-        __vbuffer.push(' ');
-        html.vl = 17, html.vc = 1;
-        __vbuffer.push(' ');
-        html.vl = 17, html.vc = 2;
-        __vbuffer.push('</filter>');
-        html.vl = 17, html.vc = 11;
-        __vbuffer.push('\n');
-        html.vl = 18, html.vc = 0;
         __vbuffer.push('</svg>');
-        html.vl = 18, html.vc = 6;
-        __vbuffer.push('\n');
-        html.vl = 19, html.vc = 0;
-        __vbuffer.push('</svg>');
-        html.vl = 19, html.vc = 6;
+        html.vl = 17, html.vc = 6;
         __vbuffer.push('\n');
         __vopts && __vopts.onRenderEnd && __vopts.onRenderEnd(null, html);
         return __vopts && __vopts.asContext ? html : html.toString();
     } catch (e) {
-        html.reportError(e, html.vl, html.vc, '<svg>!LB!\t<filter id="dropshadow" height="130%">!LB!\t\t<feGaussianBlur in="SourceAlpha" stdDeviation="3"/> <!-- stdDeviation is how much to blur -->!LB!\t\t<feOffset dx="2" dy="2" result="offsetblur"/> <!-- how much to offset -->!LB!\t\t<feMerge> !LB!\t\t\t<feMergeNode/> <!-- this contains the offset blurred image -->!LB!\t\t\t<feMergeNode in="SourceGraphic"/> <!-- this contains the element that the filter is applied to -->!LB!\t\t</feMerge>!LB!\t</filter>!LB!!LB!!LB! <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">!LB!    <feGaussianBlur in="SourceAlpha" result="blur-out" stdDeviation="2" />!LB!    <feOffset in="blur-out" result="the-shadow" dx="10" dy="0"/> !LB!    <feColorMatrix in="the-shadow" result="color-out" type="matrix"!LB!      values="1 1 1 0   1!LB!              1 0 0 0   1 !LB!              1 0 0 0   0 !LB!              0 0 0 .5 0"/>!LB!    <feBlend in="SourceGraphic" in2="color-out" mode="normal"/>!LB!  </filter>!LB!</svg>!LB!</svg>!LB!');
+        html.reportError(e, html.vl, html.vc, '<svg>!LB!\t<filter id="dropshadow" height="130%">!LB!\t\t<feGaussianBlur in="SourceAlpha" stdDeviation="3"/> <!-- stdDeviation is how much to blur -->!LB!\t\t<feOffset dx="2" dy="2" result="offsetblur"/> <!-- how much to offset -->!LB!\t\t<feMerge> !LB!\t\t\t<feMergeNode/> <!-- this contains the offset blurred image -->!LB!\t\t\t<feMergeNode in="SourceGraphic"/> <!-- this contains the element that the filter is applied to -->!LB!\t\t</feMerge>!LB!\t</filter>!LB!!LB!\t<filter id="glow" x="-40%" y="-40%" width="180%" height="180%">!LB!\t\t<feGaussianBlur in="SourceAlpha" result="blur-out" stdDeviation="2" />!LB!\t\t<feOffset in="blur-out" result="the-shadow" dx="10" dy="0"/> !LB!\t\t<feColorMatrix in="the-shadow" result="color-out" type="matrix"!LB!\t\t\tvalues="1 1 1 0   1!LB!\t\t\t\t\t1 0 0 0   1 !LB!\t\t\t\t\t1 0 0 0   0 !LB!\t\t\t\t\t0 0 0 .5 0"/>!LB!\t\t<feBlend in="SourceGraphic" in2="color-out" mode="normal"/>!LB!\t</filter>!LB!</svg>!LB!');
     }
 }, {
     'simple': false,
@@ -18130,6 +18106,10 @@ function Timeline(opts){
 			.remove();
 	}
 
+	function dateEquals(a, b){
+		return dateMath.second.diff(a, b) === 0;
+	}
+
 	function render(){
 		//h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
@@ -18213,6 +18193,8 @@ function Timeline(opts){
 			.style('fill', '#f8f8f8')
 			.call(setVerticalPosition);
 
+		var barHeight = getBarHeight();
+
 		// colored graph bar
 		newGroups
 			.append('rect')
@@ -18244,10 +18226,26 @@ function Timeline(opts){
 			.call(setVerticalPosition)
 			.style('opacity', '1')
 			.attr('fill', opts.getColor)
-			.call(setHorizontalPosition);
+			.call(setHorizontalPosition)
+			.each(function(d, i){
+				var begin = getBeginDateTime(d),
+					end = getEndDateTime(d);
+
+				if (dateEquals(begin, end)){
+					console.log('should be a circle');
+					d3.select(this)
+						.attr('height', barHeight/2)
+						.attr('width', barHeight/2)
+						.attr('rx', barHeight/4)
+						.attr('ry', barHeight/4)
+						.attr('y', function(){ 
+							return verticalScale(i) + SCALE_HEIGHT + (barHeight/4);
+						})
+						.classed('event', true);
+				}
+			});
 
 
-		var barHeight = getBarHeight();
 		var triangleSize = (barHeight*barHeight)/4;
 
 		newGroups
@@ -18437,9 +18435,10 @@ function Timeline(opts){
 			.attr('x', function(d){
 				return computeBarStart(d);
 			})
+			.filter('*:not(.event)')
 			.attr('width', function(d){ 
 				return computeBarWidth(d);
-			});
+			})
 
 		// if (d3.event && d3.translate){
 		// 	selection.attr('transform', 'translate(' + d3.event.translate+')');
@@ -18450,8 +18449,27 @@ function Timeline(opts){
 
 	function setVerticalPosition(selection){
 		selection
-			.attr('height', getBarHeight())
-			.attr('y', function(d, i){ return verticalScale(i) + SCALE_HEIGHT; });
+			.each(function(d, i){
+				var barHeight = getBarHeight(),
+					$this = d3.select(this);
+
+				if (!$this.classed('event')){
+					return $this
+						.attr('height', barHeight)
+						.attr('y', function(){ 
+							return verticalScale(i) + SCALE_HEIGHT; 
+						});
+				}
+
+				$this
+					.attr('height', barHeight/2)
+					.attr('width', barHeight/2)
+					.attr('rx', barHeight/4)
+					.attr('ry', barHeight/4)
+					.attr('y', function(){ 
+						return verticalScale(i) + SCALE_HEIGHT + (barHeight/4);
+					});
+			});
 
 		return selection;
 	}
@@ -18523,6 +18541,6 @@ function Timeline(opts){
 module.exports = Timeline;
 
 },{"./index.less":22,"/home/mchevett/code/d3-timeline/node_modules/vashify/.temp/0_index.vash.js":19,"d3":8,"date-math":12,"events":2,"lodash":18,"util":7}],22:[function(require,module,exports){
-(function() { var head = document.getElementsByTagName('head')[0]; style = document.createElement('style'); style.type = 'text/css';var css = ".the-timeline{font-family:sans-serif}.the-timeline rect.background.resize{fill:gray}.the-timeline rect.foreground.resize{fill:green;filter:url(shadow.svg#drop-shadow)}.the-timeline .top-time-axis g.tick:nth-child(1) text{text-anchor:start !important}.the-timeline .top-time-axis g.tick:nth-child(2) text{text-anchor:end !important}.the-timeline .top-time-axis text,.the-timeline .time-axis text{font-size:10px}.the-timeline .top-time-axis path,.the-timeline .time-axis path,.the-timeline .top-time-axis line,.the-timeline .time-axis line{fill:none;stroke:#000;shape-rendering:crispEdges}";if (style.styleSheet){ style.styleSheet.cssText = css; } else { style.appendChild(document.createTextNode(css)); } head.appendChild(style);}())
+(function() { var head = document.getElementsByTagName('head')[0]; style = document.createElement('style'); style.type = 'text/css';var css = ".the-timeline{font-family:sans-serif}.the-timeline rect.background.resize{fill:gray}.the-timeline rect.foreground.resize{filter:url(shadow.svg#drop-shadow)}.the-timeline .top-time-axis g.tick:nth-child(1) text{text-anchor:start !important}.the-timeline .top-time-axis g.tick:nth-child(2) text{text-anchor:end !important}.the-timeline .top-time-axis text,.the-timeline .time-axis text{font-size:10px}.the-timeline .top-time-axis path,.the-timeline .time-axis path,.the-timeline .top-time-axis line,.the-timeline .time-axis line{fill:none;stroke:#000;shape-rendering:crispEdges}";if (style.styleSheet){ style.styleSheet.cssText = css; } else { style.appendChild(document.createTextNode(css)); } head.appendChild(style);}())
 },{}]},{},[21])(21)
 });
