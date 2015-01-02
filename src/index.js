@@ -4,13 +4,20 @@ var d3 = require('d3'),
 	color = d3.scale.category20b(),
 	_ = require('lodash'),
 	util = require('util'),
+	dateMath = require('date-math'),
+	svgTemplate = require('./index.vash'),
 	EventEmitter = require('events').EventEmitter;
 
 var DEFAULTS = {
-	getBegin: function(d){ return d.beginTime; },
-	getEnd: function(d){ return d.endTime; },
+	beginField: 'beginTime',
+	endField: 'endTime',
+	getBegin: function(d){ return d[this.beginField]; },
+	getEnd: function(d){ return d[this.endField]; },
+	setBegin: function(d, v){ d[this.beginField] = v; },
+	setEnd: function(d, v){ d[this.endField] = v; },
 	getLabel: function(d){ return d.desc; },
 	getColor: function(d, i){ return d.color || color(i); },
+	getKey: _.identity,
 };
 
 util.inherits(Timeline, EventEmitter);
@@ -44,6 +51,21 @@ function Timeline(opts){
 	EventEmitter.call(self);
 
 	self.element = window.document.createElement('div');
+	self.element.innerHTML = svgTemplate({});
+
+	self.resize = function(item){
+
+		background.filter(function(d){
+			return opts.getKey(d) == opts.getKey(item);
+		})
+		.classed('resize', true)
+
+		foreground.filter(function(d){
+			return opts.getKey(d) == opts.getKey(item);
+		})
+		.classed('resize', true)
+		.style('filter', 'url(#glow)');
+	};
 
 	self.add = function(itemsToAdd){
 		_.flatten([itemsToAdd])
@@ -77,6 +99,10 @@ function Timeline(opts){
 		return  val instanceof Date ? val :new Date(val);
 	}
 
+	function setEndDateTime(item, dt){
+		opts.setEnd(item, dt);
+	}
+
 	function exitTransition(selection){
 		selection
 			.exit()
@@ -103,7 +129,7 @@ function Timeline(opts){
 				.attr('width', w)
 				.attr('height', h);
 
-			zoom.x(timeScale)
+			zoom.x(timeScale);
 
 		} else {
 			zoom = d3.behavior.zoom()
@@ -114,7 +140,7 @@ function Timeline(opts){
 				.on('zoom', onZoom);
 
 			svg = d3.select(self.element)
-				.append('svg')
+				.select('svg')
 				.classed('the-timeline', true)
 				.attr('width', w)
 				.attr('height', h);
@@ -134,7 +160,7 @@ function Timeline(opts){
 
 		verticalScale = d3.scale.ordinal()
 			.domain(d3.range(items.length))
-			.rangeRoundBands([0,barsViewHeight], 0.05);
+			.rangeRoundBands([0,barsViewHeight], 0.15);
 
 		groups = svg.selectAll('g.activity')
 			.data(items, function(item){return item.desc;});
@@ -175,9 +201,26 @@ function Timeline(opts){
 		newGroups
 			.append('rect')
 			.classed('foreground', true)
+			.style('filter', 'url(#dropshadow)')
+			.attr('rx', '15')
+			.attr('ry', '15')
 			.on('click', function(d){
 				d3.event.stopPropagation();
-				self.emit('activity-click', d);
+				var $this = d3.select(this);
+				if ($this.classed('resize')){
+
+					var dt = getEndDateTime(d);
+					dt = dateMath.hour.shift(dt, 4);
+					setEndDateTime(d, dt);
+					
+					render();
+					// var w = $this.attr('width');
+					// $this.attr('width', w+10);
+
+			// console.dir(w);
+				} else {
+					self.emit('activity-click', d);
+				}
 			})
 			.attr('width', 10)
 			.attr('height', 0)
@@ -185,7 +228,7 @@ function Timeline(opts){
 			.call(setVerticalPosition)
 			.style('opacity', '1')
 			.attr('fill', opts.getColor)
-			.call(setHorizontalPosition)
+			.call(setHorizontalPosition);
 
 
 		var barHeight = getBarHeight();
@@ -214,12 +257,13 @@ function Timeline(opts){
 		newGroups
 			.append('path')
 			.classed('left-arrow', true)
+			.style('filter', 'url(#dropshadow)')
 			.attr('fill', opts.getColor)
 			.on('click', function(d){
 				// reset the zoom
-				zoom
-					.scale(1)
-					.translate([0,0]);
+				// zoom
+				// 	.scale(1)
+				// 	.translate([0,0]);
 
 				var barStart = computeBarStart(d);
 				var barWidth = computeBarWidth(d);
@@ -242,6 +286,7 @@ function Timeline(opts){
 		newGroups
 			.append('path')
 			.classed('right-arrow', true)
+			.style('filter', 'url(#dropshadow)')
 			.attr('fill', opts.getColor)
 			.on('click', function(d){
 				self.emit('right-click', d);

@@ -1,4 +1,6 @@
 !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.timeline=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+
+},{}],2:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -301,7 +303,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -326,7 +328,235 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+(function (process){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length - 1; i >= 0; i--) {
+    var last = parts[i];
+    if (last === '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// Split a filename into [root, dir, basename, ext], unix version
+// 'root' is just a slash, or nothing.
+var splitPathRe =
+    /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
+var splitPath = function(filename) {
+  return splitPathRe.exec(filename).slice(1);
+};
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+  var resolvedPath = '',
+      resolvedAbsolute = false;
+
+  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+    var path = (i >= 0) ? arguments[i] : process.cwd();
+
+    // Skip empty and invalid entries
+    if (typeof path !== 'string') {
+      throw new TypeError('Arguments to path.resolve must be strings');
+    } else if (!path) {
+      continue;
+    }
+
+    resolvedPath = path + '/' + resolvedPath;
+    resolvedAbsolute = path.charAt(0) === '/';
+  }
+
+  // At this point the path should be resolved to a full absolute path, but
+  // handle relative paths to be safe (might happen when process.cwd() fails)
+
+  // Normalize the path
+  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+  var isAbsolute = exports.isAbsolute(path),
+      trailingSlash = substr(path, -1) === '/';
+
+  // Normalize the path
+  path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+
+  return (isAbsolute ? '/' : '') + path;
+};
+
+// posix version
+exports.isAbsolute = function(path) {
+  return path.charAt(0) === '/';
+};
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    if (typeof p !== 'string') {
+      throw new TypeError('Arguments to path.join must be strings');
+    }
+    return p;
+  }).join('/'));
+};
+
+
+// path.relative(from, to)
+// posix version
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
+};
+
+exports.sep = '/';
+exports.delimiter = ':';
+
+exports.dirname = function(path) {
+  var result = splitPath(path),
+      root = result[0],
+      dir = result[1];
+
+  if (!root && !dir) {
+    // No dirname whatsoever
+    return '.';
+  }
+
+  if (dir) {
+    // It has a dirname, strip trailing slash
+    dir = dir.substr(0, dir.length - 1);
+  }
+
+  return root + dir;
+};
+
+
+exports.basename = function(path, ext) {
+  var f = splitPath(path)[2];
+  // TODO: make this comparison case-insensitive on windows?
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+
+exports.extname = function(path) {
+  return splitPath(path)[3];
+};
+
+function filter (xs, f) {
+    if (xs.filter) return xs.filter(f);
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (f(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// String.prototype.substr - negative index don't work in IE8
+var substr = 'ab'.substr(-1) === 'b'
+    ? function (str, start, len) { return str.substr(start, len) }
+    : function (str, start, len) {
+        if (start < 0) start = str.length + start;
+        return str.substr(start, len);
+    }
+;
+
+}).call(this,require('_process'))
+},{"_process":5}],5:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -414,14 +644,14 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -1011,7 +1241,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":4,"_process":3,"inherits":2}],6:[function(require,module,exports){
+},{"./support/isBuffer":6,"_process":5,"inherits":3}],8:[function(require,module,exports){
 !function() {
   var d3 = {
     version: "3.4.13"
@@ -10227,7 +10457,410 @@ function hasOwnProperty(obj, prop) {
   if (typeof define === "function" && define.amd) define(d3); else if (typeof module === "object" && module.exports) module.exports = d3;
   this.d3 = d3;
 }();
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
+var diff = require('./diff');
+var hour = require('./hour');
+
+
+/**
+ * Module exports
+ */
+
+exports.ceil = ceil;
+exports.diff = diff(shift);
+exports.floor = floor;
+exports.shift = shift;
+
+
+/**
+ * Floor the `date` to the nearest day
+ */
+
+function floor (date) {
+  date = hour.floor(date);
+  date.setUTCHours(0);
+  return date;
+}
+
+
+/**
+ * Ceiling the `date` to the next day
+ */
+
+function ceil (date) {
+  var floored = floor(date);
+  var roundUp = floored.getTime() !== date.getTime();
+  if (roundUp) floored.setUTCDate(floored.getUTCDate() + 1);
+  return floored;
+}
+
+
+/**
+ * Shift the `date` by `amount` days
+ */
+
+function shift (date, amount) {
+  var date = new Date(date);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date;
+}
+},{"./diff":10,"./hour":11}],10:[function(require,module,exports){
+
+/**
+ * Return a function to find the diff between the start and end for the given
+ * shift function.
+ *
+ * @param {Function} shift  shifts dates by an amount (e.g. day.shift)
+ * @return {Function} diff  function to calculate the difference
+ */
+
+module.exports = function (shift) {
+  return function (start, end) {
+    var reversed = end < start;
+    if (reversed) {
+      var temp = end;
+      end = start;
+      start = temp;
+    }
+
+    var diff = 0;
+    for (start = shift(start, 1);
+         start <= end;
+         start = shift(start, 1)) diff++;
+
+    return reversed ? -diff : diff;
+  };
+};
+},{}],11:[function(require,module,exports){
+var diff = require('./diff');
+var minute = require('./minute');
+
+
+/**
+ * Module exports
+ */
+
+exports.ceil = ceil;
+exports.diff = diff(shift);
+exports.floor = floor;
+exports.shift = shift;
+
+
+/**
+ * Floor the date to the nearest hour
+ */
+
+function floor (date) {
+  date = minute.floor(date);
+  date.setUTCMinutes(0);
+  return date;
+}
+
+
+/**
+ * Cailing the date to the next hour
+ */
+
+function ceil (date) {
+  var floored = floor(date);
+  var roundUp = date.getTime() !== floored.getTime();
+  if (roundUp) floored.setUTCHours(floored.getUTCHours() + 1);
+  return floored;
+}
+
+
+/**
+ * Shift the date by `amount` hours.
+ */
+
+function shift (date, amount) {
+  date = new Date(date);
+  date.setUTCHours(date.getUTCHours() + amount);
+  return date;
+}
+},{"./diff":10,"./minute":13}],12:[function(require,module,exports){
+
+/**
+ * Module exports.
+ */
+
+exports.day = require('./day');
+exports.hour = require('./hour');
+exports.minute = require('./minute');
+exports.month = require('./month');
+exports.second = require('./second');
+exports.week = require('./week');
+exports.year = require('./year');
+
+},{"./day":9,"./hour":11,"./minute":13,"./month":14,"./second":15,"./week":16,"./year":17}],13:[function(require,module,exports){
+var diff = require('./diff');
+var second = require('./second');
+
+
+/**
+ * Module exports
+ */
+
+exports.ceil = ceil;
+exports.diff = diff(shift);
+exports.floor = floor;
+exports.shift = shift;
+
+
+/**
+ * Floors the date to the current minute
+ *
+ * @param {Date} date
+ * @return {Date}
+ */
+
+function floor (date) {
+  date = second.floor(date);
+  date.setUTCSeconds(0);
+  return date;
+}
+
+
+/**
+ * Ceilings the date to the next minute
+ *
+ * @param {Date} date
+ * @return {Date}
+ */
+
+function ceil (date) {
+  var floored = floor(date);
+  var roundUp = floored.getTime() !== date.getTime();
+  if (roundUp) floored.setUTCMinutes(floored.getUTCMinutes() + 1);
+  return floored;
+}
+
+
+/**
+ * Shifts the date by `amount` minutes
+ *
+ * @param {Date} date
+ * @param {Number} amount
+ */
+
+function shift (date, amount) {
+  var date = new Date(date);
+  date.setUTCMinutes(date.getUTCMinutes() + amount);
+  return  date;
+}
+
+
+
+},{"./diff":10,"./second":15}],14:[function(require,module,exports){
+var day = require('./day');
+var diff = require('./diff');
+
+
+/**
+ * Module exports
+ */
+
+exports.ceil = ceil;
+exports.diff = diff(shift);
+exports.floor = floor;
+exports.shift = shift;
+
+
+/**
+ * Floor the `date` to the previous month
+ */
+
+function floor (date) {
+  date = day.floor(date);
+  date.setUTCDate(1);
+  return date;
+}
+
+
+/**
+ * Ceiling the `date` to the next month
+ */
+
+function ceil (date) {
+  var floored = floor(date);
+  var roundUp = floored.getTime() !== date.getTime();
+  if (roundUp) floored.setUTCMonth(floored.getUTCMonth() + 1);
+  return floored;
+}
+
+
+/**
+ * Shift the `date` by `amount` months
+ */
+
+function shift (date, amount) {
+  date = new Date(date);
+  date.setUTCMonth(date.getUTCMonth() + amount);
+  return date;
+}
+},{"./day":9,"./diff":10}],15:[function(require,module,exports){
+var diff = require('./diff');
+
+
+/**
+ * Module exports
+ */
+
+exports.ceil = ceil;
+exports.diff = diff(shift);
+exports.floor = floor;
+exports.shift = shift;
+
+
+/**
+ * Floors the date to the current minute
+ *
+ * @param {Date} date
+ * @return {Date}
+ */
+
+function floor (date) {
+  date = new Date(date);
+  date.setUTCMilliseconds(0);
+  return date;
+}
+
+
+/**
+ * Ceilings the date to the next minute
+ *
+ * @param {Date} date
+ * @return {Date}
+ */
+
+function ceil (date) {
+  var floored = floor(date);
+  var roundUp = floored.getTime() !== date.getTime();
+  if (roundUp) floored.setUTCSeconds(floored.getUTCSeconds() + 1);
+  return floored;
+}
+
+
+/**
+ * Shifts the date by `amount` minutes
+ *
+ * @param {Date} date
+ * @param {Number} amount
+ */
+
+function shift (date, amount) {
+  date = new Date(date);
+  date.setUTCSeconds(date.getUTCSeconds() + amount);
+  return date;
+}
+
+
+
+},{"./diff":10}],16:[function(require,module,exports){
+var day = require('./day');
+var diff = require('./diff');
+
+
+/**
+ * Module exports
+ */
+
+exports.ceil = ceil;
+exports.diff = diff(shift);
+exports.floor = floor;
+exports.shift = shift;
+
+
+/**
+ * Floors the week to the last _Monday_
+ */
+
+function floor (date) {
+  date = day.floor(date);
+  date.setUTCDate(date.getUTCDate() - dayOfWeek(date));
+  return date;
+}
+
+
+/**
+ * Ceils the week to the next _Monday_
+ */
+
+function ceil (date) {
+  var floored = floor(date);
+  var roundUp = floored.getTime() !== date.getTime();
+  if (roundUp) floored.setUTCDate(floored.getUTCDate() + 7);
+  return floored;
+}
+
+
+/**
+ * Shifts the `date` by `amount` weeks.
+ */
+
+function shift (date, amount) {
+  date = new Date(date);
+  date.setUTCDate(date.getUTCDate() + (7 * amount));
+  return date;
+}
+
+
+/**
+ * Calculates the day of the week using the ISO Standard, Monday = 0
+ * http://en.wikipedia.org/wiki/ISO_week_date
+ */
+
+function dayOfWeek (date) {
+  return (date.getUTCDay() + 6) % 7;
+}
+},{"./day":9,"./diff":10}],17:[function(require,module,exports){
+var diff = require('./diff');
+var month = require('./month');
+
+
+/**
+ * Module exports
+ */
+
+exports.ceil = ceil;
+exports.diff = diff(shift);
+exports.floor = floor;
+exports.shift = shift;
+
+
+/**
+ * Floor the `date` to the beginning of the current year.
+ */
+
+function floor (date) {
+  date = month.floor(date);
+  date.setUTCMonth(0);
+  return date;
+}
+
+
+/**
+ * Ceil the `date` to the next year
+ */
+
+function ceil (date) {
+  var floored = floor(date);
+  var roundUp = floored.getTime() !== date.getTime();
+  if (roundUp) floored.setUTCFullYear(floored.getUTCFullYear() + 1);
+  return floored;
+}
+
+
+/**
+ * Shift the `date` by the `amount` of years
+ */
+
+function shift (date, amount) {
+  date = new Date(date);
+  date.setUTCFullYear(date.getUTCFullYear() + amount);
+  return date;
+}
+},{"./diff":10,"./month":14}],18:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -17016,20 +17649,391 @@ function hasOwnProperty(obj, prop) {
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],8:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
+var vash = require('/home/mchevett/code/d3-timeline/node_modules/vashify/node_modules/vash/build/vash-runtime-all.min.js');
+module.exports = vash.link(function anonymous(model, html, __vopts, vash) {
+    try {
+        var __vbuffer = html.buffer;
+        html.options = __vopts;
+        model = model || {};
+        html.vl = 1, html.vc = 0;
+        __vbuffer.push('<svg>');
+        html.vl = 1, html.vc = 5;
+        __vbuffer.push('\n');
+        html.vl = 2, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 2, html.vc = 1;
+        __vbuffer.push('<filter id="dropshadow" height="130%">');
+        html.vl = 2, html.vc = 39;
+        __vbuffer.push('\n');
+        html.vl = 3, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 3, html.vc = 1;
+        __vbuffer.push('\t');
+        html.vl = 3, html.vc = 2;
+        __vbuffer.push('<feGaussianBlur in="SourceAlpha" stdDeviation="3"');
+        html.vl = 3, html.vc = 51;
+        __vbuffer.push('/>');
+        html.vl = 3, html.vc = 53;
+        __vbuffer.push(' ');
+        html.vl = 3, html.vc = 54;
+        __vbuffer.push('<');
+        html.vl = 3, html.vc = 55;
+        __vbuffer.push('!');
+        html.vl = 3, html.vc = 56;
+        __vbuffer.push('-');
+        html.vl = 3, html.vc = 57;
+        __vbuffer.push('-');
+        html.vl = 3, html.vc = 58;
+        __vbuffer.push(' ');
+        html.vl = 3, html.vc = 59;
+        __vbuffer.push('stdDeviation');
+        html.vl = 3, html.vc = 71;
+        __vbuffer.push(' ');
+        html.vl = 3, html.vc = 72;
+        __vbuffer.push('is');
+        html.vl = 3, html.vc = 74;
+        __vbuffer.push(' ');
+        html.vl = 3, html.vc = 75;
+        __vbuffer.push('how');
+        html.vl = 3, html.vc = 78;
+        __vbuffer.push(' ');
+        html.vl = 3, html.vc = 79;
+        __vbuffer.push('much');
+        html.vl = 3, html.vc = 83;
+        __vbuffer.push(' ');
+        html.vl = 3, html.vc = 84;
+        __vbuffer.push('to');
+        html.vl = 3, html.vc = 86;
+        __vbuffer.push(' ');
+        html.vl = 3, html.vc = 87;
+        __vbuffer.push('blur');
+        html.vl = 3, html.vc = 91;
+        __vbuffer.push(' ');
+        html.vl = 3, html.vc = 92;
+        __vbuffer.push('-');
+        html.vl = 3, html.vc = 93;
+        __vbuffer.push('-');
+        html.vl = 3, html.vc = 94;
+        __vbuffer.push('>');
+        html.vl = 3, html.vc = 95;
+        __vbuffer.push('\n');
+        html.vl = 4, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 4, html.vc = 1;
+        __vbuffer.push('\t');
+        html.vl = 4, html.vc = 2;
+        __vbuffer.push('<feOffset dx="2" dy="2" result="offsetblur"');
+        html.vl = 4, html.vc = 45;
+        __vbuffer.push('/>');
+        html.vl = 4, html.vc = 47;
+        __vbuffer.push(' ');
+        html.vl = 4, html.vc = 48;
+        __vbuffer.push('<');
+        html.vl = 4, html.vc = 49;
+        __vbuffer.push('!');
+        html.vl = 4, html.vc = 50;
+        __vbuffer.push('-');
+        html.vl = 4, html.vc = 51;
+        __vbuffer.push('-');
+        html.vl = 4, html.vc = 52;
+        __vbuffer.push(' ');
+        html.vl = 4, html.vc = 53;
+        __vbuffer.push('how');
+        html.vl = 4, html.vc = 56;
+        __vbuffer.push(' ');
+        html.vl = 4, html.vc = 57;
+        __vbuffer.push('much');
+        html.vl = 4, html.vc = 61;
+        __vbuffer.push(' ');
+        html.vl = 4, html.vc = 62;
+        __vbuffer.push('to');
+        html.vl = 4, html.vc = 64;
+        __vbuffer.push(' ');
+        html.vl = 4, html.vc = 65;
+        __vbuffer.push('offset');
+        html.vl = 4, html.vc = 71;
+        __vbuffer.push(' ');
+        html.vl = 4, html.vc = 72;
+        __vbuffer.push('-');
+        html.vl = 4, html.vc = 73;
+        __vbuffer.push('-');
+        html.vl = 4, html.vc = 74;
+        __vbuffer.push('>');
+        html.vl = 4, html.vc = 75;
+        __vbuffer.push('\n');
+        html.vl = 5, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 5, html.vc = 1;
+        __vbuffer.push('\t');
+        html.vl = 5, html.vc = 2;
+        __vbuffer.push('<feMerge>');
+        html.vl = 5, html.vc = 11;
+        __vbuffer.push(' ');
+        html.vl = 5, html.vc = 12;
+        __vbuffer.push('\n');
+        html.vl = 6, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 6, html.vc = 1;
+        __vbuffer.push('\t');
+        html.vl = 6, html.vc = 2;
+        __vbuffer.push('\t');
+        html.vl = 6, html.vc = 3;
+        __vbuffer.push('<feMergeNode');
+        html.vl = 6, html.vc = 15;
+        __vbuffer.push('/>');
+        html.vl = 6, html.vc = 17;
+        __vbuffer.push(' ');
+        html.vl = 6, html.vc = 18;
+        __vbuffer.push('<');
+        html.vl = 6, html.vc = 19;
+        __vbuffer.push('!');
+        html.vl = 6, html.vc = 20;
+        __vbuffer.push('-');
+        html.vl = 6, html.vc = 21;
+        __vbuffer.push('-');
+        html.vl = 6, html.vc = 22;
+        __vbuffer.push(' ');
+        html.vl = 6, html.vc = 23;
+        __vbuffer.push('this');
+        html.vl = 6, html.vc = 27;
+        __vbuffer.push(' ');
+        html.vl = 6, html.vc = 28;
+        __vbuffer.push('contains');
+        html.vl = 6, html.vc = 36;
+        __vbuffer.push(' ');
+        html.vl = 6, html.vc = 37;
+        __vbuffer.push('the');
+        html.vl = 6, html.vc = 40;
+        __vbuffer.push(' ');
+        html.vl = 6, html.vc = 41;
+        __vbuffer.push('offset');
+        html.vl = 6, html.vc = 47;
+        __vbuffer.push(' ');
+        html.vl = 6, html.vc = 48;
+        __vbuffer.push('blurred');
+        html.vl = 6, html.vc = 55;
+        __vbuffer.push(' ');
+        html.vl = 6, html.vc = 56;
+        __vbuffer.push('image');
+        html.vl = 6, html.vc = 61;
+        __vbuffer.push(' ');
+        html.vl = 6, html.vc = 62;
+        __vbuffer.push('-');
+        html.vl = 6, html.vc = 63;
+        __vbuffer.push('-');
+        html.vl = 6, html.vc = 64;
+        __vbuffer.push('>');
+        html.vl = 6, html.vc = 65;
+        __vbuffer.push('\n');
+        html.vl = 7, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 7, html.vc = 1;
+        __vbuffer.push('\t');
+        html.vl = 7, html.vc = 2;
+        __vbuffer.push('\t');
+        html.vl = 7, html.vc = 3;
+        __vbuffer.push('<feMergeNode in="SourceGraphic"');
+        html.vl = 7, html.vc = 34;
+        __vbuffer.push('/>');
+        html.vl = 7, html.vc = 36;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 37;
+        __vbuffer.push('<');
+        html.vl = 7, html.vc = 38;
+        __vbuffer.push('!');
+        html.vl = 7, html.vc = 39;
+        __vbuffer.push('-');
+        html.vl = 7, html.vc = 40;
+        __vbuffer.push('-');
+        html.vl = 7, html.vc = 41;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 42;
+        __vbuffer.push('this');
+        html.vl = 7, html.vc = 46;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 47;
+        __vbuffer.push('contains');
+        html.vl = 7, html.vc = 55;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 56;
+        __vbuffer.push('the');
+        html.vl = 7, html.vc = 59;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 60;
+        __vbuffer.push('element');
+        html.vl = 7, html.vc = 67;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 68;
+        __vbuffer.push('that');
+        html.vl = 7, html.vc = 72;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 73;
+        __vbuffer.push('the');
+        html.vl = 7, html.vc = 76;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 77;
+        __vbuffer.push('filter');
+        html.vl = 7, html.vc = 83;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 84;
+        __vbuffer.push('is');
+        html.vl = 7, html.vc = 86;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 87;
+        __vbuffer.push('applied');
+        html.vl = 7, html.vc = 94;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 95;
+        __vbuffer.push('to');
+        html.vl = 7, html.vc = 97;
+        __vbuffer.push(' ');
+        html.vl = 7, html.vc = 98;
+        __vbuffer.push('-');
+        html.vl = 7, html.vc = 99;
+        __vbuffer.push('-');
+        html.vl = 7, html.vc = 100;
+        __vbuffer.push('>');
+        html.vl = 7, html.vc = 101;
+        __vbuffer.push('\n');
+        html.vl = 8, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 8, html.vc = 1;
+        __vbuffer.push('\t');
+        html.vl = 8, html.vc = 2;
+        __vbuffer.push('</feMerge>');
+        html.vl = 8, html.vc = 12;
+        __vbuffer.push('\n');
+        html.vl = 9, html.vc = 0;
+        __vbuffer.push('\t');
+        html.vl = 9, html.vc = 1;
+        __vbuffer.push('</filter>');
+        html.vl = 9, html.vc = 10;
+        __vbuffer.push('\n');
+        html.vl = 10, html.vc = 0;
+        __vbuffer.push('\n');
+        html.vl = 11, html.vc = 0;
+        __vbuffer.push('\n');
+        html.vl = 12, html.vc = 0;
+        __vbuffer.push(' ');
+        html.vl = 12, html.vc = 1;
+        __vbuffer.push('<filter id="glow" x="-40%" y="-40%" width="180%" height="180%">');
+        html.vl = 12, html.vc = 64;
+        __vbuffer.push('\n');
+        html.vl = 13, html.vc = 0;
+        __vbuffer.push(' ');
+        html.vl = 13, html.vc = 1;
+        __vbuffer.push(' ');
+        html.vl = 13, html.vc = 2;
+        __vbuffer.push(' ');
+        html.vl = 13, html.vc = 3;
+        __vbuffer.push(' ');
+        html.vl = 13, html.vc = 4;
+        __vbuffer.push('<feGaussianBlur in="SourceAlpha" result="blur-out" stdDeviation="2" ');
+        html.vl = 13, html.vc = 72;
+        __vbuffer.push('/>');
+        html.vl = 13, html.vc = 74;
+        __vbuffer.push('\n');
+        html.vl = 14, html.vc = 0;
+        __vbuffer.push(' ');
+        html.vl = 14, html.vc = 1;
+        __vbuffer.push(' ');
+        html.vl = 14, html.vc = 2;
+        __vbuffer.push(' ');
+        html.vl = 14, html.vc = 3;
+        __vbuffer.push(' ');
+        html.vl = 14, html.vc = 4;
+        __vbuffer.push('<feOffset in="blur-out" result="the-shadow" dx="10" dy="0"');
+        html.vl = 14, html.vc = 62;
+        __vbuffer.push('/>');
+        html.vl = 14, html.vc = 64;
+        __vbuffer.push(' ');
+        html.vl = 14, html.vc = 65;
+        __vbuffer.push('\n');
+        html.vl = 15, html.vc = 0;
+        __vbuffer.push(' ');
+        html.vl = 15, html.vc = 1;
+        __vbuffer.push(' ');
+        html.vl = 15, html.vc = 2;
+        __vbuffer.push(' ');
+        html.vl = 15, html.vc = 3;
+        __vbuffer.push(' ');
+        html.vl = 15, html.vc = 4;
+        __vbuffer.push('<feColorMatrix in="the-shadow" result="color-out" type="matrix"\n      values="1 1 1 0   1\n              1 0 0 0   1 \n              1 0 0 0   0 \n              0 0 0 .5 0"');
+        html.vl = 15, html.vc = 173;
+        __vbuffer.push('/>');
+        html.vl = 15, html.vc = 175;
+        __vbuffer.push('\n');
+        html.vl = 16, html.vc = 0;
+        __vbuffer.push(' ');
+        html.vl = 16, html.vc = 1;
+        __vbuffer.push(' ');
+        html.vl = 16, html.vc = 2;
+        __vbuffer.push(' ');
+        html.vl = 16, html.vc = 3;
+        __vbuffer.push(' ');
+        html.vl = 16, html.vc = 4;
+        __vbuffer.push('<feBlend in="SourceGraphic" in2="color-out" mode="normal"');
+        html.vl = 16, html.vc = 61;
+        __vbuffer.push('/>');
+        html.vl = 16, html.vc = 63;
+        __vbuffer.push('\n');
+        html.vl = 17, html.vc = 0;
+        __vbuffer.push(' ');
+        html.vl = 17, html.vc = 1;
+        __vbuffer.push(' ');
+        html.vl = 17, html.vc = 2;
+        __vbuffer.push('</filter>');
+        html.vl = 17, html.vc = 11;
+        __vbuffer.push('\n');
+        html.vl = 18, html.vc = 0;
+        __vbuffer.push('</svg>');
+        html.vl = 18, html.vc = 6;
+        __vbuffer.push('\n');
+        html.vl = 19, html.vc = 0;
+        __vbuffer.push('</svg>');
+        html.vl = 19, html.vc = 6;
+        __vbuffer.push('\n');
+        __vopts && __vopts.onRenderEnd && __vopts.onRenderEnd(null, html);
+        return __vopts && __vopts.asContext ? html : html.toString();
+    } catch (e) {
+        html.reportError(e, html.vl, html.vc, '<svg>!LB!\t<filter id="dropshadow" height="130%">!LB!\t\t<feGaussianBlur in="SourceAlpha" stdDeviation="3"/> <!-- stdDeviation is how much to blur -->!LB!\t\t<feOffset dx="2" dy="2" result="offsetblur"/> <!-- how much to offset -->!LB!\t\t<feMerge> !LB!\t\t\t<feMergeNode/> <!-- this contains the offset blurred image -->!LB!\t\t\t<feMergeNode in="SourceGraphic"/> <!-- this contains the element that the filter is applied to -->!LB!\t\t</feMerge>!LB!\t</filter>!LB!!LB!!LB! <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">!LB!    <feGaussianBlur in="SourceAlpha" result="blur-out" stdDeviation="2" />!LB!    <feOffset in="blur-out" result="the-shadow" dx="10" dy="0"/> !LB!    <feColorMatrix in="the-shadow" result="color-out" type="matrix"!LB!      values="1 1 1 0   1!LB!              1 0 0 0   1 !LB!              1 0 0 0   0 !LB!              0 0 0 .5 0"/>!LB!    <feBlend in="SourceGraphic" in2="color-out" mode="normal"/>!LB!  </filter>!LB!</svg>!LB!</svg>!LB!');
+    }
+}, {
+    'simple': false,
+    'modelName': 'model',
+    'helpersName': 'html'
+});
+},{"/home/mchevett/code/d3-timeline/node_modules/vashify/node_modules/vash/build/vash-runtime-all.min.js":20}],20:[function(require,module,exports){
+/**
+ * Vash - JavaScript Template Parser, v0.7.12-1
+ *
+ * https://github.com/kirbysayshi/vash
+ *
+ * Copyright (c) 2013 Andrew Petersen
+ * MIT License (LICENSE)
+ */void 0,function(){function i(a,b){typeof b=="function"&&(b={onRenderEnd:b}),a&&a.onRenderEnd&&(b=b||{},b.onRenderEnd||(b.onRenderEnd=a.onRenderEnd),delete a.onRenderEnd),b||(b={});return b}vash=typeof vash=="undefined"?{}:vash,vash.compile||(typeof define=="function"&&define.amd?define(function(){return vash}):typeof module=="object"&&module.exports?module.exports=vash:window.vash=vash);var a=vash.helpers,b=function(a){this.buffer=new f,this.model=a,this.options=null,this.vl=0,this.vc=0};vash.helpers=a=b.prototype={constructor:b,config:{},tplcache:{}},a.toString=a.toHtmlString=function(){return this.buffer._vo.join("")};var c=/[&<>"'`]/g,d=function(a){return e[a]},e={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#x27;","`":"&#x60;"};a.raw=function(a){var b=function(){return a};a=a!=null?a:"";return{toHtmlString:b,toString:b}},a.escape=function(a){var b=function(){return a};a=a!=null?a:"";if(typeof a.toHtmlString!="function"){a=a.toString().replace(c,d);return{toHtmlString:b,toString:b}}return a};var f=function(){this._vo=[]};f.prototype.mark=function(a){var b=new g(this,a);b.markedIndex=this._vo.length,this._vo.push(b.uid);return b},f.prototype.fromMark=function(a){var b=a.findInBuffer();if(b>-1){a.destroy();return this._vo.splice(b,this._vo.length)}return[]},f.prototype.spliceMark=function(a,b,c){var d=a.findInBuffer();if(d>-1){a.destroy(),arguments[0]=d;return this._vo.splice.apply(this._vo,arguments)}return[]},f.prototype.empty=function(){return this._vo.splice(0,this._vo.length)},f.prototype.push=function(a){return this._vo.push(a)},f.prototype.pushConcat=function(a){var b;Array.isArray(a)?b=a:arguments.length>1?b=Array.prototype.slice.call(arguments):b=[a];for(var c=0;c<b.length;c++)this._vo.push(b[c]);return this.__vo},f.prototype.indexOf=function(a){for(var b=0;b<this._vo.length;b++)if(a.test&&this._vo[b]&&this._vo[b].search(a)>-1||this._vo[b]==a)return b;return-1},f.prototype.lastIndexOf=function(a){var b=this._vo.length;while(--b>=0)if(a.test&&this._vo[b]&&this._vo[b].search(a)>-1||this._vo[b]==a)return b;return-1},f.prototype.splice=function(){return this._vo.splice.apply(this._vo,arguments)},f.prototype.index=function(a){return this._vo[a]},f.prototype.flush=function(){return this.empty().join("")},f.prototype.toString=f.prototype.toHtmlString=function(){return this._vo.join("")};var g=vash.Mark=function(a,b){this.uid="[VASHMARK-"+~~(Math.random()*1e7)+(b?":"+b:"")+"]",this.markedIndex=0,this.buffer=a,this.destroyed=!1},h=g.re=/\[VASHMARK\-\d{1,8}(?::[\s\S]+?)?]/g;g.uidLike=function(a){return(a||"").search(h)>-1},g.prototype.destroy=function(){var a=this.findInBuffer();a>-1&&(this.buffer.splice(a,1),this.markedIndex=-1),this.destroyed=!0},g.prototype.findInBuffer=function(){if(this.destroyed)return-1;if(this.markedIndex&&this.buffer.index(this.markedIndex)===this.uid)return this.markedIndex;var a=this.uid.replace(/(\[|\])/g,"\\$1"),b=new RegExp(a);return this.markedIndex=this.buffer.indexOf(b)},a.constructor.reportError=function(a,b,c,d,e){e=e||"!LB!";var f=d.split(e),g=b===0&&c===0?f.length-1:3,h=Math.max(0,b-g),i=Math.min(f.length,b+g),j=f.slice(h,i).map(function(a,c,d){var e=c+h+1;return(e===b?"  > ":"    ")+(e<10?" ":"")+e+" | "+a}).join("\n");a.vashlineno=b,a.vashcharno=c,a.message="Problem while rendering template at line "+b+", character "+c+".\nOriginal message: "+a.message+"."+"\nContext: \n\n"+j+"\n\n";throw a},a.reportError=function(){this.constructor.reportError.apply(this,arguments)},vash.link=function(c,d){var e,f;d.args||(d.args=[d.modelName,d.helpersName,"__vopts","vash"]);if(typeof c=="string"){e=c;try{f=d.args.slice(),f.push(c),c=Function.apply(null,f)}catch(g){a.reportError(g,0,0,e,/\n/)}}c.options={simple:d.simple,modelName:d.modelName,helpersName:d.helpersName};var h;d.asHelper?(c.options.args=d.args,c.options.asHelper=d.asHelper,h=function(){return c.apply(this,j.call(arguments))},a[d.asHelper]=h):h=function(a,e){if(d.simple){var f={buffer:[],escape:b.prototype.escape,raw:b.prototype.raw};return c(a,f,e,vash)}e=i(a,e);return c(a,e&&e.context||new b(a),e,vash)},h.toString=function(){return c.toString()},h._toString=function(){return Function.prototype.toString.call(h)},h.toClientString=function(){return"vash.link( "+c.toString()+", "+JSON.stringify(c.options)+" )"};return h};var j=Array.prototype.slice;vash.lookup=function(a,b){var c=vash.helpers.tplcache[a];if(!c)throw new Error("Could not find template: "+a);return b?c(b):c},vash.install=function(a,b){var c=vash.helpers.tplcache;if(typeof b=="string"){if(!vash.compile)throw new Error("vash.install(path, [string]) is not available in the standalone runtime.");b=vash.compile(b)}else if(typeof a=="object"){b=a,Object.keys(b).forEach(function(a){c[a]=b[a]});return c}return c[a]=b},vash.uninstall=function(a){var b=vash.helpers.tplcache,c=!1;if(typeof a=="string")return delete b[a];Object.keys(b).forEach(function(d){b[d]===a&&(c=delete b[d])});return c}}(),function(){var a=vash.helpers;a.trim=function(a){return a.replace(/^\s*|\s*$/g,"")},a.config.highlighter=null,a.highlight=function(b,c){var d=this.buffer.mark();c();var e=this.buffer.fromMark(d);this.buffer.push("<pre><code>"),a.config.highlighter?this.buffer.push(a.config.highlighter(b,e.join("")).value):this.buffer.push(e),this.buffer.push("</code></pre>")}}(),function(){function d(a){var b=vash.Mark.re,c=[],d="";a.forEach(function(a){b.exec(a)?(c.push(d,a),d=""):d+=a||""}),c.push(d);return c}if(typeof window=="undefined")var a=require("fs"),b=require("path");var c=vash.helpers;c.config.browser=!1,vash.loadFile=function(d,e,f){e=vQuery.extend({},vash.config,e||{});var g=c.config.browser,h;!g&&e.settings&&e.settings.views&&(d=b.normalize(d),d.indexOf(b.normalize(e.settings.views))===-1&&(d=b.join(e.settings.views,d)),b.extname(d)||(d+="."+(e.settings["view engine"]||"vash")));try{h=e.cache||g?c.tplcache[d]||(c.tplcache[d]=vash.compile(a.readFileSync(d,"utf8"))):vash.compile(a.readFileSync(d,"utf8")),f&&f(null,h)}catch(i){f&&f(i,null)}},vash.renderFile=function(a,b,c){vash.loadFile(a,b,function(a,d){var e=b.onRenderEnd;c(a,!a&&d(b,function(a,b){b.finishLayout(),e&&e(a,b)}))})},c._ensureLayoutProps=function(){this.appends=this.appends||{},this.prepends=this.prepends||{},this.blocks=this.blocks||{},this.blockMarks=this.blockMarks||{}},c.finishLayout=function(){this._ensureLayoutProps();var a=this,b,c,e,f,g,h,i,j;for(b in this.blockMarks)c=this.blockMarks[b],f=this.prepends[b],e=this.blocks[b],g=this.appends[b],h=c.pop(),i=this.buffer.mark(),f&&f.forEach(function(b){a.buffer.pushConcat(b)}),block=e.pop(),block&&this.buffer.pushConcat(block),g&&g.forEach(function(b){a.buffer.pushConcat(b)}),j=this.buffer.fromMark(i),j=d(j),j.unshift(h,0),this.buffer.spliceMark.apply(this.buffer,j);for(b in this.blockMarks)this.blockMarks[b].forEach(function(a){a.destroy()});delete this.blockMarks,delete this.prepends,delete this.blocks,delete this.appends;return this.toString()},c.extend=function(a,b){var c=this,d=this.buffer,e=this.model,f;this._ensureLayoutProps(),vash.loadFile(a,this.model,function(a,d){var e=c.buffer.mark();b(c.model);var f=c.buffer.fromMark(e);c.isExtending=!0,d(c.model,{context:c}),c.isExtending=!1}),this.model=e},c.include=function(a,b){var c=this,d=this.buffer,e=this.model;vash.loadFile(a,this.model,function(a,d){d(b||c.model,{context:c})}),this.model=e},c.block=function(a,b){this._ensureLayoutProps();var c=this,d=this.blockMarks[a]||(this.blockMarks[a]=[]),e=this.blocks[a]||(this.blocks[a]=[]),f,g;b&&(f=this.buffer.mark(),b(this.model),g=this.buffer.fromMark(f),g.length&&!this.isExtending&&e.push(g),g.length&&this.isExtending&&e.unshift(g)),d.push(this.buffer.mark("block-"+a))},c._handlePrependAppend=function(a,b,c){this._ensureLayoutProps();var d=this.buffer.mark(),e,f=this[a],g=f[b]||(f[b]=[]);c(this.model),e=this.buffer.fromMark(d),g.push(e)},c.append=function(a,b){this._handlePrependAppend("appends",a,b)},c.prepend=function(a,b){this._handlePrependAppend("prepends",a,b)}}()
+},{"fs":1,"path":4}],21:[function(require,module,exports){
 require('./index.less');
 
 var d3 = require('d3'),
 	color = d3.scale.category20b(),
 	_ = require('lodash'),
 	util = require('util'),
+	dateMath = require('date-math'),
+	svgTemplate = require("/home/mchevett/code/d3-timeline/node_modules/vashify/.temp/0_index.vash.js"),
 	EventEmitter = require('events').EventEmitter;
 
 var DEFAULTS = {
-	getBegin: function(d){ return d.beginTime; },
-	getEnd: function(d){ return d.endTime; },
+	beginField: 'beginTime',
+	endField: 'endTime',
+	getBegin: function(d){ return d[this.beginField]; },
+	getEnd: function(d){ return d[this.endField]; },
+	setBegin: function(d, v){ d[this.beginField] = v; },
+	setEnd: function(d, v){ d[this.endField] = v; },
 	getLabel: function(d){ return d.desc; },
 	getColor: function(d, i){ return d.color || color(i); },
+	getKey: _.identity,
 };
 
 util.inherits(Timeline, EventEmitter);
@@ -17060,10 +18064,24 @@ function Timeline(opts){
 		text,
 		getHugeDateString = d3.time.format('%A, %B %e,  %Y %I:%M%p');
 
-	console.dir(h);
 	EventEmitter.call(self);
 
 	self.element = window.document.createElement('div');
+	self.element.innerHTML = svgTemplate({});
+
+	self.resize = function(item){
+
+		background.filter(function(d){
+			return opts.getKey(d) == opts.getKey(item);
+		})
+		.classed('resize', true)
+
+		foreground.filter(function(d){
+			return opts.getKey(d) == opts.getKey(item);
+		})
+		.classed('resize', true)
+		.style('filter', 'url(#glow)');
+	};
 
 	self.add = function(itemsToAdd){
 		_.flatten([itemsToAdd])
@@ -17097,6 +18115,10 @@ function Timeline(opts){
 		return  val instanceof Date ? val :new Date(val);
 	}
 
+	function setEndDateTime(item, dt){
+		opts.setEnd(item, dt);
+	}
+
 	function exitTransition(selection){
 		selection
 			.exit()
@@ -17109,15 +18131,12 @@ function Timeline(opts){
 	}
 
 	function render(){
-		console.log('in render');
-		//console.log('0');
 		//h = window.innerHeight - HEADER_HEIGHT,
 		w = +window.innerWidth,
 
 		_.sortBy(items, getBeginDateTime);
 		timeScale = ensureTimeScale(items);
 
-		console.log('111');
 		if (svg){
 			svg.attr('width', w)
 				.attr('height', h);
@@ -17126,7 +18145,7 @@ function Timeline(opts){
 				.attr('width', w)
 				.attr('height', h);
 
-			zoom.x(timeScale)
+			zoom.x(timeScale);
 
 		} else {
 			zoom = d3.behavior.zoom()
@@ -17137,7 +18156,7 @@ function Timeline(opts){
 				.on('zoom', onZoom);
 
 			svg = d3.select(self.element)
-				.append('svg')
+				.select('svg')
 				.classed('the-timeline', true)
 				.attr('width', w)
 				.attr('height', h);
@@ -17154,12 +18173,10 @@ function Timeline(opts){
 				.call(zoom)
 				.call(zoom.event);
 		}
-		console.log('222');
 
-		//console.log('1');
 		verticalScale = d3.scale.ordinal()
 			.domain(d3.range(items.length))
-			.rangeRoundBands([0,barsViewHeight], 0.05);
+			.rangeRoundBands([0,barsViewHeight], 0.15);
 
 		groups = svg.selectAll('g.activity')
 			.data(items, function(item){return item.desc;});
@@ -17174,19 +18191,19 @@ function Timeline(opts){
 			.attr('fill', opts.getColor)
 			.call(setHorizontalPosition)
 			.transition()
-			.call(setVerticalPosition)
+			.call(setVerticalPosition);
 
 		var newGroups = groups
 			.enter()
 			.append('g')
 			.classed('activity', true)
-			.style('opacity', 0)
+			.style('opacity', 0);
 
 		newGroups
 			.transition()
 			.style('opacity', 1)
 			.attr('data-id', function(d){ return d._id; });
-		//console.log('2');
+
 		// background bar
 		newGroups
 			.append('rect')
@@ -17200,9 +18217,26 @@ function Timeline(opts){
 		newGroups
 			.append('rect')
 			.classed('foreground', true)
+			.style('filter', 'url(#dropshadow)')
+			.attr('rx', '15')
+			.attr('ry', '15')
 			.on('click', function(d){
 				d3.event.stopPropagation();
-				self.emit('activity-click', d);
+				var $this = d3.select(this);
+				if ($this.classed('resize')){
+
+					var dt = getEndDateTime(d);
+					dt = dateMath.hour.shift(dt, 4);
+					setEndDateTime(d, dt);
+					
+					render();
+					// var w = $this.attr('width');
+					// $this.attr('width', w+10);
+
+			// console.dir(w);
+				} else {
+					self.emit('activity-click', d);
+				}
 			})
 			.attr('width', 10)
 			.attr('height', 0)
@@ -17210,7 +18244,7 @@ function Timeline(opts){
 			.call(setVerticalPosition)
 			.style('opacity', '1')
 			.attr('fill', opts.getColor)
-			.call(setHorizontalPosition)
+			.call(setHorizontalPosition);
 
 
 		var barHeight = getBarHeight();
@@ -17231,7 +18265,6 @@ function Timeline(opts){
 				return verticalScale(i) +h + SCALE_HEIGHT;
 			})
 			.call(setTextPosition);
-		//console.log('3');
 
 		var arc = d3.svg.symbol()
 			.type('triangle-up')
@@ -17240,12 +18273,13 @@ function Timeline(opts){
 		newGroups
 			.append('path')
 			.classed('left-arrow', true)
+			.style('filter', 'url(#dropshadow)')
 			.attr('fill', opts.getColor)
 			.on('click', function(d){
 				// reset the zoom
-				zoom
-					.scale(1)
-					.translate([0,0]);
+				// zoom
+				// 	.scale(1)
+				// 	.translate([0,0]);
 
 				var barStart = computeBarStart(d);
 				var barWidth = computeBarWidth(d);
@@ -17257,26 +18291,18 @@ function Timeline(opts){
 				var scale = s/(barWidth + barStart);
 				var x = (w-(scale*(barWidth+barStart)))/2;
 
-				console.log('scale: ' + scale);
-				console.log('x: ' + x);
-				console.log('barStart: ' + barStart);
-				console.log('barWidth: ' + barWidth);
-				
-
 
 				svg.transition()
 					.call(zoom.translate([x, 200]).scale(scale).event)
 				;
 
-
-
 				self.emit('left-click', d);
 			});
 
-		//console.log('4');
 		newGroups
 			.append('path')
 			.classed('right-arrow', true)
+			.style('filter', 'url(#dropshadow)')
 			.attr('fill', opts.getColor)
 			.on('click', function(d){
 				self.emit('right-click', d);
@@ -17307,7 +18333,6 @@ function Timeline(opts){
 
 
 
-		console.log('a');
 		if (!timeAxis){
 			timeAxis = d3.svg.axis()
 				.scale(timeScale)
@@ -17327,7 +18352,6 @@ function Timeline(opts){
 				.attr('transform', 'translate(0, '+(h-SCALE_HEIGHT)+')')
 				.call(timeAxis);
 		}
-		console.log('b');
 
 		if (!topTimeAxis){
 			topTimeAxis = d3.svg.axis()
@@ -17405,8 +18429,6 @@ function Timeline(opts){
 	}
 	function computeBarStart(d){
 		var x = timeScale(getBeginDateTime(d));
-		//console.log('barStart: ' + x);
-		//console.dir(x);
 		return x;
 	}
 
@@ -17456,7 +18478,6 @@ function Timeline(opts){
 	}
 
 	function onZoom(){
-		console.log('i be zooming');
 		if (timeAxis)
 			svg.selectAll('.time-axis')
 				.call(timeAxis);
@@ -17464,9 +18485,6 @@ function Timeline(opts){
 		if (timeAxis)
 			svg.selectAll('.top-time-axis')
 				.call(topTimeAxis);
-
-		console.log('still zooming');
-
 
 		if (foreground)
 			foreground.call(setHorizontalPosition);
@@ -17504,7 +18522,7 @@ function Timeline(opts){
 
 module.exports = Timeline;
 
-},{"./index.less":9,"d3":6,"events":1,"lodash":7,"util":5}],9:[function(require,module,exports){
-(function() { var head = document.getElementsByTagName('head')[0]; style = document.createElement('style'); style.type = 'text/css';var css = ".the-timeline{font-family:sans-serif}.the-timeline .top-time-axis g.tick:nth-child(1) text{text-anchor:start !important}.the-timeline .top-time-axis g.tick:nth-child(2) text{text-anchor:end !important}.the-timeline .top-time-axis text,.the-timeline .time-axis text{font-size:10px}.the-timeline .top-time-axis path,.the-timeline .time-axis path,.the-timeline .top-time-axis line,.the-timeline .time-axis line{fill:none;stroke:#000;shape-rendering:crispEdges}";if (style.styleSheet){ style.styleSheet.cssText = css; } else { style.appendChild(document.createTextNode(css)); } head.appendChild(style);}())
-},{}]},{},[8])(8)
+},{"./index.less":22,"/home/mchevett/code/d3-timeline/node_modules/vashify/.temp/0_index.vash.js":19,"d3":8,"date-math":12,"events":2,"lodash":18,"util":7}],22:[function(require,module,exports){
+(function() { var head = document.getElementsByTagName('head')[0]; style = document.createElement('style'); style.type = 'text/css';var css = ".the-timeline{font-family:sans-serif}.the-timeline rect.background.resize{fill:gray}.the-timeline rect.foreground.resize{fill:green;filter:url(shadow.svg#drop-shadow)}.the-timeline .top-time-axis g.tick:nth-child(1) text{text-anchor:start !important}.the-timeline .top-time-axis g.tick:nth-child(2) text{text-anchor:end !important}.the-timeline .top-time-axis text,.the-timeline .time-axis text{font-size:10px}.the-timeline .top-time-axis path,.the-timeline .time-axis path,.the-timeline .top-time-axis line,.the-timeline .time-axis line{fill:none;stroke:#000;shape-rendering:crispEdges}";if (style.styleSheet){ style.styleSheet.cssText = css; } else { style.appendChild(document.createTextNode(css)); } head.appendChild(style);}())
+},{}]},{},[21])(21)
 });

@@ -100,13 +100,13 @@
 				myTimeline.add(itemsToAdd.shift());
 			}
 			var myTimeline = timeline({
-					getBegin: function(d){ return d.beginTime; },
-					getEnd: function(d){ return d.endTime; },
+					beginField: 'beginTime',
+					endField: 'endTime',
 					getLabel: function(d){ return d.desc; },
 				});
 
 			myTimeline.on('activity-click', function(item){
-					myTimeline.remove(item);
+					myTimeline.resize(item);
 					//itemsToAdd.shift(item);
 				});
 			myTimeline.on('left-click', function(item){

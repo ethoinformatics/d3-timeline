@@ -18,8 +18,10 @@
   "homepage": "https://github.com/ethoinformatics/d3-timeline",
   "dependencies": {
     "d3": "^3.4.13",
+    "date-math": "0.0.1",
     "lodash": "^2.4.1",
-    "node-lessify": "0.0.8"
+    "node-lessify": "0.0.8",
+    "vashify": "^0.4.0"
   },
   "devDependencies": {
     "browserify": "^6.3.2"
