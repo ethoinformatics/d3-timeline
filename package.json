@@ -15,6 +15,9 @@
   "bugs": {
     "url": "https://github.com/ethoinformatics/d3-timeline/issues"
   },
+  "browserify":{
+	  "transform": ["vashify", "node-lessify"]
+  },
   "homepage": "https://github.com/ethoinformatics/d3-timeline",
   "dependencies": {
     "d3": "^3.4.13",
