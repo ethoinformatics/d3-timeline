@@ -64,7 +64,7 @@ function Timeline(opts){
 			return opts.getKey(d) == opts.getKey(item);
 		})
 		.classed('resize', true)
-		.style('filter', 'url(#glow)');
+		//.style('filter', 'url(#glow)');
 	};
 
 	self.add = function(itemsToAdd){
@@ -83,6 +83,11 @@ function Timeline(opts){
 		render();
 	};
 
+	self.clear = function(){
+		items = [];
+		render();
+	};
+
 	self.update = render;
 
 	function getBarHeight(){
@@ -96,7 +101,11 @@ function Timeline(opts){
 
 	function getEndDateTime(item){
 		var val = opts.getEnd(item);
-		return  val instanceof Date ? val :new Date(val);
+
+		if (val){
+			return  val instanceof Date ? val :new Date(val);
+		}
+		return new Date();
 	}
 
 	function setEndDateTime(item, dt){
@@ -167,7 +176,7 @@ function Timeline(opts){
 			.rangeRoundBands([0,barsViewHeight], 0.15);
 
 		groups = svg.selectAll('g.activity')
-			.data(items, function(item){return item.desc;});
+			.data(items, function(item){return item._id || item.id;});
 
 		groups.call(exitTransition);
 
@@ -235,23 +244,23 @@ function Timeline(opts){
 			.style('opacity', '1')
 			.attr('fill', opts.getColor)
 			.call(setHorizontalPosition)
-			.each(function(d, i){
-				var begin = getBeginDateTime(d),
-					end = getEndDateTime(d);
+			// .each(function(d, i){
+			// 	var begin = getBeginDateTime(d),
+			// 		end = getEndDateTime(d);
 
-				if (dateEquals(begin, end)){
-					console.log('should be a circle');
-					d3.select(this)
-						.attr('height', barHeight/2)
-						.attr('width', barHeight/2)
-						.attr('rx', barHeight/4)
-						.attr('ry', barHeight/4)
-						.attr('y', function(){ 
-							return verticalScale(i) + SCALE_HEIGHT + (barHeight/4);
-						})
-						.classed('event', true);
-				}
-			});
+			// 	if (dateEquals(begin, end)){
+			// 		console.log('should be a circle');
+			// 		d3.select(this)
+			// 			.attr('height', barHeight/2)
+			// 			.attr('width', barHeight/2)
+			// 			.attr('rx', barHeight/4)
+			// 			.attr('ry', barHeight/4)
+			// 			.attr('y', function(){ 
+			// 				return verticalScale(i) + SCALE_HEIGHT + (barHeight/4);
+			// 			})
+			// 			.classed('event', true);
+			// 	}
+			// });
 
 
 		var triangleSize = (barHeight*barHeight)/4;
