@@ -194,7 +194,26 @@ function Timeline(opts){
 			.enter()
 			.append('g')
 			.classed('activity', true)
-			.style('opacity', 0);
+			.style('opacity', 0)
+			.on('click', function(d){
+				d3.event.stopPropagation();
+
+				var $this = d3.select(this);
+				if ($this.classed('resize')){
+
+					var dt = getEndDateTime(d);
+					dt = dateMath.hour.shift(dt, 4);
+					setEndDateTime(d, dt);
+					
+					render();
+					// var w = $this.attr('width');
+					// $this.attr('width', w+10);
+
+			// console.dir(w);
+				} else {
+					self.emit('activity-click', d);
+				}
+			});
 
 		newGroups
 			.transition()
@@ -216,27 +235,9 @@ function Timeline(opts){
 		newGroups
 			.append('rect')
 			.classed('foreground', true)
-			.style('filter', 'url(#dropshadow)')
+			//.style('filter', 'url(#dropshadow)')
 			.attr('rx', '15')
 			.attr('ry', '15')
-			.on('click', function(d){
-				d3.event.stopPropagation();
-				var $this = d3.select(this);
-				if ($this.classed('resize')){
-
-					var dt = getEndDateTime(d);
-					dt = dateMath.hour.shift(dt, 4);
-					setEndDateTime(d, dt);
-					
-					render();
-					// var w = $this.attr('width');
-					// $this.attr('width', w+10);
-
-			// console.dir(w);
-				} else {
-					self.emit('activity-click', d);
-				}
-			})
 			.attr('width', 10)
 			.attr('height', 0)
 			.style('opacity', '0')
@@ -268,8 +269,7 @@ function Timeline(opts){
 		newGroups
 			.append('text')
 			.style('opacity', 0.3)
-			.attr('fill', function(){ return 'black';/*d.color;*/});
-		
+			.attr('fill', function(){ return 'black';/*d.color;*/})
 
 		groups.select('text')
 			.text(opts.getLabel)
@@ -288,9 +288,10 @@ function Timeline(opts){
 		newGroups
 			.append('path')
 			.classed('left-arrow', true)
-			.style('filter', 'url(#dropshadow)')
+			//.style('filter', 'url(#dropshadow)')
 			.attr('fill', opts.getColor)
 			.on('click', function(d){
+				d3.event.stopPropagation();
 				// reset the zoom
 				// zoom
 				// 	.scale(1)
@@ -317,7 +318,9 @@ function Timeline(opts){
 		newGroups
 			.append('path')
 			.classed('right-arrow', true)
-			.style('filter', 'url(#dropshadow)')
+			.on('click', function(){
+				d3.event.stopPropagation();
+			})
 			.attr('fill', opts.getColor)
 			.on('click', function(d){
 				self.emit('right-click', d);
