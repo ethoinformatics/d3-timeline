@@ -115,7 +115,7 @@ function Timeline(opts){
 	function exitTransition(selection){
 		selection
 			.exit()
-			.selectAll('rect,text,path')
+			//.selectAll('g,rect,text,path')
 			.transition()
 			.duration(400)
 			.style('opacity', 0)
