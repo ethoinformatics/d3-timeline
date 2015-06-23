@@ -272,7 +272,7 @@ function Timeline(opts){
 			.attr('fill', function(){ return 'black';/*d.color;*/})
 
 		groups.select('text')
-			.text(opts.getLabel)
+			//.text(opts.getLabel)
 			.transition()
 			.attr('font-size', barHeight/2)
 			.attr('y', function(d, i){ 
@@ -437,9 +437,10 @@ function Timeline(opts){
 
 	function computeBarWidth(d){
 		var begin = timeScale(getBeginDateTime(d)), v;
+		var end = timeScale(getEndDateTime(d));
 
-		if (d.endTime) {
-			v = timeScale(getEndDateTime(d)) - begin;
+		if (end) {
+			v = end - begin;
 		} else {
 			v = timeScale(new Date()) - begin;
 		}
@@ -497,13 +498,15 @@ function Timeline(opts){
 	function setTextPosition(selection){
 		selection
 			.attr('x', function(d){
-				var x = timeScale(new Date(d.beginTime));
-				var begin = timeScale(new Date(d.beginTime)), v;
+				var beginTime = getBeginDateTime(d);
+				var endTime = getEndDateTime(d);
+				var x = timeScale(beginTime);
+				var begin = timeScale(beginTime), v;
 
 				var txtWidth = this.getComputedTextLength();
 
-				if (d.endTime) {
-					v = timeScale(new Date(d.endTime)) - begin;
+				if (endTime) {
+					v = timeScale(endTime) - begin;
 				} else {
 					v = timeScale(new Date()) - begin;
 				}
@@ -550,7 +553,7 @@ function Timeline(opts){
 
 		rightArrow
 			.attr('visibility', function(d){
-				var x = timeScale(new Date(d.beginTime));
+				var x = timeScale(getBeginDateTime(d));
 				return x < w ? 'hidden' : 'visible';
 			});
 	}

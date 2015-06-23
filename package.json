@@ -15,14 +15,17 @@
   "bugs": {
     "url": "https://github.com/ethoinformatics/d3-timeline/issues"
   },
-  "browserify":{
-	  "transform": ["vashify", "node-lessify"]
+  "browserify": {
+    "transform": [
+      "vashify",
+      "node-lessify"
+    ]
   },
   "homepage": "https://github.com/ethoinformatics/d3-timeline",
   "dependencies": {
     "d3": "^3.4.13",
     "date-math": "0.0.1",
-    "lodash": "^2.4.1",
+    "lodash": "^3.6.0",
     "node-lessify": "0.0.8",
     "vashify": "^0.4.0"
   },
