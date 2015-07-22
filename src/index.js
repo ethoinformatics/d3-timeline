@@ -272,7 +272,7 @@ function Timeline(opts){
 			.attr('fill', function(){ return 'black';/*d.color;*/})
 
 		groups.select('text')
-			//.text(opts.getLabel)
+			.text(opts.getLabel)
 			.transition()
 			.attr('font-size', barHeight/2)
 			.attr('y', function(d, i){ 
