@@ -1,6 +1,6 @@
 {
   "name": "d3-timeline",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "d3-timeline",
   "main": "src/index.js",
   "scripts": {
