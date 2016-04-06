@@ -26,8 +26,10 @@
     "d3": "^3.4.13",
     "date-math": "0.0.1",
     "lodash": "^3.6.0",
-    "node-lessify": "0.0.8",
-    "vashify": "^0.4.0"
+    "node-lessify": "0.1.1",
+    "vashify": "^0.4.0",
+		"xtend": "~3.0.0",
+		"esprima": "^1.2.1"
   },
   "devDependencies": {
     "browserify": "^6.3.2"
